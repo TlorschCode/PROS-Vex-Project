@@ -30,11 +30,11 @@ int up_analog = {};
 float left_speed, right_speed = {};
 float max_speed = {25.0f};
 float rot = {};
-float x, y = {};     // X and Y of robot
-float h, k = {};     // Center of circle
-float r = {5.0f};    // Circle's radiusy
+float x, y = {};        // X and Y of robot
+float h, k = {};        // Center of circle
+float r = {5.0f};       // Circle's radiusy
 float m = {1.0f};       // Slope of line between two points
-float a, b, c = {};  // A, B, and C for quadratic equation
+float a, b, c = {};     // A, B, and C for quadratic equation
 float y_intercept = {1.0f};
 float overall_velocity = {};
 float overall_y = {};
@@ -50,6 +50,7 @@ const double pi = 3.14159265358979323846;
 // B = 2 * (m * (y_intercept - k) - h)
 // C = (h**2 + (y_intercept - k)**2 - r**2)
 // discriminant = B**2 - 4*A*C
+// The code above was written in python. It will find the intersect points of a line and a circle
 
 //// NON-DEFAULT FUNCTIONS ////
 bool clear_screen() {
@@ -60,18 +61,18 @@ bool clear_screen() {
 	pros::lcd::clear_line(2);
 	pros::lcd::clear_line(1);
 	return true;
-}
+} // this function will clear the entire screen of the robot
 
 bool wait(float time) {
 	pros::delay(time);
 	return true;
-}
+} // this function is a shortcut to wait a certain amount of time (milliseconds)
 
 template <typename T>
 void println(const T& input, int row = 1) {
 	string printtext = to_string(input);
 	pros::lcd::set_text(row, printtext);
-}
+} // this function is a shortcut to print to the robot's brain
 
 float get_rot() {
 	return floor(inert.get_rotation() * 100) / 100;
@@ -80,7 +81,6 @@ float get_rot() {
 void control_motors(float up, float left) {
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) 
 	{
-		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
 			max_speed += 5;
 			if (max_speed > 200) {
@@ -88,10 +88,8 @@ void control_motors(float up, float left) {
 			}
 		}
 		pressing_speed = true;
-	// DOWN //
 	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) 
 	{
-		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
 			max_speed -= 5;
 			if (max_speed < 5) {
@@ -101,7 +99,6 @@ void control_motors(float up, float left) {
 		pressing_speed = true;
 	} else 
 	{
-		// ALREADY PRESSING TOGGLE //
 		pressing_speed = false;
 	}
 	float left_speed = left - up;
@@ -119,6 +116,7 @@ void control_motors(float up, float left) {
 	}
 	left_speed *= -1;
 	right_speed *= -1;
+	// move motors
 	top_left.move_velocity(left_speed);
 	bottom_left.move_velocity(left_speed);
 	top_right.move_velocity(right_speed);
@@ -169,17 +167,6 @@ void disabled() {
 void competition_initialize() {
 }
 
-/**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
- */
 void autonomous() {
 	// for (int i; i < auton_x.size(); i++) {
 	// 	float target_x = auton_x.at(i);
@@ -194,25 +181,16 @@ void autonomous() {
 	// 		wait(10);
 	// 	}
 	// }
-	// while (true) {
-	// 	float rot = get_rot();
-	// 	float overall_velocity = (top_left.get_actual_velocity() + top_right.get_actual_velocity() + bottom_left.get_actual_velocity() + bottom_right.get_actual_velocity()) / 4;
-	// 	float overall_y = overall_y + (overall_velocity * cos(rot));
-	// 	println(overall_y);
-	// 	println(overall_x);
-	// 	wait(10);
-	// }
+	
+	// v position tracking v //
+	rot = get_rot();
+	rot_radians = fmod(rot, 360) * (pi / 180);
+	overall_velocity = (top_left.get_actual_velocity() + bottom_left.get_actual_velocity() - (top_right.get_actual_velocity() + bottom_right.get_actual_velocity())) / 4;
+	overall_y = overall_y + ((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians));  // CHANGE 11.65 AS NEEDED ***DEBUG***
+	overall_x = overall_x + ((((overall_velocity / 360) * 0.1f) * 11.65f) * sin(rot_radians));  // CHANGE 11.65 AS NEEDED ***DEBUG***
+	// the script above ^^^ will accurately (mostly) track the robot's position using the wheel positions and an imu for rotation
 }
 
-
-/**
-This function will be started in its own task with the default priority and stack size 
-whenever the robot is enabled via the Field Management System or the VEX Competition Switch 
-in the operator control mode.
-
-If no competition control is connected, this function will run immediately
-following initialize().
-**/
 
 void opcontrol() {
 	//// SETUP ////
@@ -231,26 +209,10 @@ void opcontrol() {
 	//// CODE ////
 	while (true)
 	{
-		// position calculations ***REMOVE***
-		rot = get_rot();
-		rot_radians = fmod(rot, 360) * (pi / 180);
-		overall_velocity = (top_left.get_actual_velocity() + bottom_left.get_actual_velocity() - (top_right.get_actual_velocity() + bottom_right.get_actual_velocity())) / 4;
-		overall_y = overall_y + ((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians));  // CHANGE 11.65 AS NEEDED ***DEBUG***
-		overall_x = overall_x + ((((overall_velocity / 360) * 0.1f) * 11.65f) * sin(rot_radians));  // CHANGE 11.65 AS NEEDED ***DEBUG***
-
-		// speed calculations
 		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2;
 		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
 
-		//// CONTROL DRIVETRAIN ////
-		if (overall_y <= 12) {
-			control_motors(up_analog, left_analog);
-		} else {
-			top_left.brake();
-			top_right.brake();
-			bottom_left.brake();
-			bottom_right.brake();
-		}
+		control_motors(up_analog, left_analog);
 
 		wait(10);
 	}
