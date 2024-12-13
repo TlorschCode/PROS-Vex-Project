@@ -25,23 +25,26 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 //// VARIABLES, ARRAYS, LISTS, ECT ////
 bool pressing_speed = {false};
-int left_analog = {0};
-int up_analog = {0};
-float left_speed, right_speed = {0};
+int left_analog = {};
+int up_analog = {};
+float left_speed, right_speed = {};
 float max_speed = {25.0f};
-float rot = {0};
+float rot = {};
 float x, y = {};     // X and Y of robot
 float h, k = {};     // Center of circle
 float r = {5.0f};    // Circle's radiusy
-float m = {1};       // Slope of line between two points
+float m = {1.0f};       // Slope of line between two points
 float a, b, c = {};  // A, B, and C for quadratic equation
-float y_intercept = 1.0f;
-float overall_velocity = {0};
-float overall_y = {0};
-float overall_x = {0};
+float y_intercept = {1.0f};
+float overall_velocity = {};
+float overall_y = {};
+float overall_x = {};
+float rot_radians = {};
 // points for auton
 vector <float> auton_x {12.0f, 12.0f};
 vector <float> auton_y {12.0f, 24.0f};
+// constants
+const double pi = 3.14159265358979323846;
 
 // A = 1 + m**2
 // B = 2 * (m * (y_intercept - k) - h)
@@ -141,7 +144,7 @@ void on_center_button() {
  */
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+	pros::lcd::set_text(1, "STARTING PROGRAM");
 
 	pros::lcd::register_btn1_cb(on_center_button);
 }
@@ -218,26 +221,22 @@ void opcontrol() {
 	while (inert.is_calibrating()) {
 		int a = 0;
 	}
-
 	// auton
-	autonomous(); //***Autonomous-REMOVE FOR COMP***//
-	
+	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
 	pros::lcd::set_text(1, "OPCONTROL");
 	wait(1000);
-
 	
 	//// CODE ////
 	while (true)
 	{
 		// position calculations ***REMOVE***
 		rot = get_rot();
+		rot_radians = fmod(rot, 360) * (pi / 180);
 		overall_velocity = (top_left.get_actual_velocity() + bottom_left.get_actual_velocity() - (top_right.get_actual_velocity() + bottom_right.get_actual_velocity())) / 4;
-		overall_y = overall_y + (overall_velocity / 360);
-		println(overall_velocity);
-		println(overall_y, 2);
-		println(cos(rot), 3);
+		overall_y = overall_y + ((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians));  // CHANGE 11.65 AS NEEDED ***DEBUG***
+		overall_x = overall_x + ((((overall_velocity / 360) * 0.1f) * 11.65f) * sin(rot_radians));  // CHANGE 11.65 AS NEEDED ***DEBUG***
 
 		// speed calculations
 		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2;
