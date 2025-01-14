@@ -31,7 +31,7 @@ pros::Motor bottom_left(2, pros::v5::MotorGears::green, pros::v5::MotorUnits::de
 pros::Motor top_right(3, pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
 pros::Motor bottom_right(4, pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
 pros::Motor intake(6, pros::v5::MotorGears::red, pros::v5::MotorUnits::degrees);
-pros::Motor conveyor(6, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+pros::Motor conveyor(7, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 
 // controller -
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
