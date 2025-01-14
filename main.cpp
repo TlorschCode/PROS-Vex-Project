@@ -18,9 +18,7 @@ using namespace std;
 
 //// CONSTRUCTORS ////
 // pneumatics -
-pros::adi::Pneumatics stake_lift2(1, true);
-pros::adi::Pneumatics stake_lift1(1, false);
-pros::adi::Pneumatics stake_clamp(1, true);
+pros::adi::Pneumatics stake_lift(1, true);
 
 // sensors -
 pros::IMU inert(5);
@@ -73,9 +71,9 @@ const double pi = 3.14159265358979323846;
 
 //// NON-DEFAULT FUNCTIONS ////
 void grab_stake() {
-	stake_lift1.toggle();
-	stake_lift2.toggle();
-	stake_clamp.toggle();
+	// stake_lift1.toggle();
+	stake_lift.toggle();
+	// stake_clamp.toggle();
 }
 
 void move_wheels(float speedleft, float speedright) {
@@ -167,8 +165,8 @@ void control_motors(float up, float left) {
 		// ALREADY PRESSING TOGGLE //
 		pressing_speed = false;
 	}
-	float left_speed = left - up;
-	float right_speed = left + up;
+	float left_speed = left + up;
+	float right_speed = left - up;
 	//// SPEED CONTROL ////
 	speed_control(max_speed);
 	left_speed *= -1;
@@ -180,19 +178,23 @@ void control_motors(float up, float left) {
 
 void control_scoring() {
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-		if (pressing_stake = false) {
-			grab_stake();
-		}
-		pressing_stake = true;
+		// if (pressing_stake = false) {
+		// 	grab_stake();
+		// }
+		// pressing_stake = true;
+		grab_stake();
 	} else {
 		pressing_stake = false;
 	}
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-		intake.move_velocity(100);
-		conveyor.move_velocity(75);
+		intake.move_velocity(-200);
+		conveyor.move_velocity(200);
 	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-		intake.move_velocity(-100);
-		conveyor.move_velocity(-75);
+		intake.move_velocity(200);
+		conveyor.move_velocity(-200);
+	} else {
+		intake.brake();
+		conveyor.brake();
 	}
 }
 
