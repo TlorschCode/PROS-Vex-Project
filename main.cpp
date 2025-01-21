@@ -58,6 +58,7 @@ float overall_y = {};
 float overall_x = {};
 float rot_radians = {};
 float x_diff, y_diff {};
+float conveyor_speed = {440};
 // points for auton
 vector <float> auton_x {12.0f, 12.0f};
 vector <float> auton_y {12.0f, 24.0f};
@@ -70,10 +71,16 @@ const double pi = 3.14159265358979323846;
 // discriminant = B**2 - 4*A*C
 
 //// NON-DEFAULT FUNCTIONS ////
-void grab_stake() {
-	// stake_lift1.toggle();
-	stake_lift.toggle();
-	// stake_clamp.toggle();
+double to_radians(float degrees) {
+	return degrees * (pi / 180);
+}
+
+float to_degrees(double radians) {
+	return radians * (180 / pi);
+}
+
+double truncate(double num, int cutoff = 2) {
+	return floor(num * pow(10, cutoff)) / pow(10, cutoff);
 }
 
 void move_wheels(float speedleft, float speedright) {
@@ -121,8 +128,7 @@ void println(const T& input, int row = 1) {
 }
 
 float get_rot() {
-	// println(floor(inert.get_rotation() * 100) / 100);
-	return floor(inert.get_rotation() * 100) / 100;
+	return truncate(inert.get_rotation());
 }
 
 void speed_control(float maxspeed) {
@@ -139,8 +145,7 @@ void speed_control(float maxspeed) {
 }
 
 void control_motors(float up, float left) {
-	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) 
-	{
+	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
 		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
 			max_speed += 10;
@@ -150,8 +155,7 @@ void control_motors(float up, float left) {
 		}
 		pressing_speed = true;
 	// DOWN //
-	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) 
-	{
+	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
 		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
 			max_speed -= 10;
@@ -160,38 +164,34 @@ void control_motors(float up, float left) {
 			}
 		}
 		pressing_speed = true;
-	} else 
-	{
+	} else {
 		// ALREADY PRESSING TOGGLE //
 		pressing_speed = false;
 	}
-	float left_speed = left + up;
-	float right_speed = left - up;
+	float left_speed = left - up;
+	float right_speed = left + up;
 	//// SPEED CONTROL ////
 	speed_control(max_speed);
 	left_speed *= -1;
 	right_speed *= -1;
-	left_speed = left_speed * 1 + (controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y) / 2);
-	right_speed = right_speed * 1 + (controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y) / 2);
 	move_wheels(left_speed, right_speed);
 }
 
 void control_scoring() {
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-		// if (pressing_stake = false) {
-		// 	grab_stake();
-		// }
-		// pressing_stake = true;
-		grab_stake();
+		if (!pressing_stake) {
+			stake_lift.toggle();
+		}
+		pressing_stake = true;
 	} else {
 		pressing_stake = false;
 	}
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
-		intake.move_velocity(-200);
-		conveyor.move_velocity(200);
+		intake.move_velocity(conveyor_speed * -1);
+		conveyor.move_velocity(conveyor_speed);
 	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-		intake.move_velocity(200);
-		conveyor.move_velocity(-200);
+		intake.move_velocity(conveyor_speed);
+		conveyor.move_velocity(conveyor_speed * -1);
 	} else {
 		intake.brake();
 		conveyor.brake();
@@ -200,42 +200,36 @@ void control_scoring() {
 
 void update_position() {  // Tracks and changes the robot's position based on odometry information
 	rot = get_rot();
-	rot_radians = fmod(rot, 360) * (pi / 180);
-	overall_velocity = ((top_right.get_actual_velocity() + bottom_right.get_actual_velocity()) - top_left.get_actual_velocity() + bottom_left.get_actual_velocity()) / 4;
+	rot_radians = to_radians(fmod(rot, 360));
+	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity())) - (truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
 	overall_y = overall_y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED ***DEBUG***
 	overall_x = overall_x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED ***DEBUG***
 }
 
 void move_to(float tarx, float tary) {
+	rot = get_rot();
 	x_diff = tarx - overall_x;
 	y_diff = tary - overall_y;
 	x = tarx;
-	y = tary;
-	target_rot = atan2((x - overall_x), (y - overall_y));
+	y = tary;  // This is necessary, don't delete
+	target_rot = to_degrees(atan2((x - overall_x), (y - overall_y)));
 	start_rot = target_rot - rot;
 	dist = sqrt(abs(pow(x - overall_x, 2) + pow(y - overall_y, 2)));
-	
-	// right_speed *= -1;
-	// left_speed *= 3;
-	// right_speed *= 3;
+	println(target_rot);
+	println(rot, 2);
+	wait(100 * 1000);
 
-	while (/*tary - overall_y > 0.1 && */tarx - overall_x > 0.1) {
-		wait(10);
-		target_rot = atan2((x - overall_x), (y - overall_y));
-		xdiv = start_rot - (target_rot - rot);
-		left_speed = dist + xdiv;
-		right_speed = dist - xdiv;
-		left_speed *= -1;
-		// right_speed *= -1;
-		left_speed *= 2;
-		right_speed *= 2;
+	while (/*tary - overall_y > 0.1 || tarx - overall_x > 0.1*/ target_rot - rot < 0.1f) {
+		left_speed = target_rot - rot;
+		right_speed = target_rot - rot;  // **NOW-- If robot goes forward, reverse this.
 		speed_control(30);
 		move_wheels(left_speed, right_speed);
-		println(left_speed);
-		println(right_speed, 2);
 		update_position();
+		wait(10);
 	}
 	brake_wheels();
+	println("nah bro");
+	wait(2000);
 }
 
 //// DEFAULT FUNCTIONS ////
@@ -287,26 +281,24 @@ void autonomous() {
 	//// SETUP ////
 	inert.tare();
 	inert.reset();
-	while (inert.is_calibrating()) {
-		1;
-	}
-	move_to(24, 24);
+	move_to(12, 12);
 	
-	// 		// a = 1 + pow(m, 2);
-	// 		// b = 2 * (m * (y_intercept - k) - h);
-	// 		// c = (pow(h, 2) + pow((y_intercept - k), 2) - pow(r, 2));
+	//// a = 1 + pow(m, 2);
+	//// b = 2 * (m * (y_intercept - k) - h);
+	//// c = (pow(h, 2) + pow((y_intercept - k), 2) - pow(r, 2));
 
 	
 	update_position();
 		
-	brake_wheels();
+	// brake_wheels();
+	// brake_wheels();
 }
 
 
 void opcontrol() {
 	
 	// auton
-	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
 	pros::lcd::set_text(1, "OPCONTROL");
@@ -315,8 +307,8 @@ void opcontrol() {
 	//// CODE ////
 	while (true)
 	{
-		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2;
 		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 3;
 
 		control_motors(up_analog, left_analog);
 		control_scoring();
