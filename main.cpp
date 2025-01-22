@@ -109,7 +109,7 @@ bool clear_screen() {
 
 bool wait(float time) {
 	pros::delay(time);
-		return true;
+	return true;
 }
 
 template <typename T>
@@ -128,7 +128,12 @@ void println(const T& input, int row = 1) {
 }
 
 float get_rot() {
-	return truncate(inert.get_rotation());
+    float rot = inert.get_rotation();
+    rot = fmod(rot + 180.0f, 360.0f);  // Shift range to [0, 360)
+    if (rot < 0) {
+        rot += 360.0f;  // Handle negative results from fmod
+    }
+    return rot - 180.0f;  // Shift range to [-180, 180]
 }
 
 void speed_control(float maxspeed) {
@@ -200,7 +205,7 @@ void control_scoring() {
 
 void update_position() {  // Tracks and changes the robot's position based on odometry information
 	rot = get_rot();
-	rot_radians = to_radians(fmod(rot, 360));
+	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity())) - (truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
 	overall_y = overall_y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED ***DEBUG***
 	overall_x = overall_x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED ***DEBUG***
@@ -213,23 +218,27 @@ void move_to(float tarx, float tary) {
 	x = tarx;
 	y = tary;  // This is necessary, don't delete
 	target_rot = to_degrees(atan2((x - overall_x), (y - overall_y)));
-	start_rot = target_rot - rot;
 	dist = sqrt(abs(pow(x - overall_x, 2) + pow(y - overall_y, 2)));
+	clear_screen();
 	println(target_rot);
 	println(rot, 2);
-	wait(100 * 1000);
+	println(target_rot - rot, 3);
+	println(target_rot - rot < 0.1f, 4);
+	wait(3 * 1000);
+	clear_screen();
 
-	while (/*tary - overall_y > 0.1 || tarx - overall_x > 0.1*/ target_rot - rot < 0.1f) {
-		left_speed = target_rot - rot;
-		right_speed = target_rot - rot;  // **NOW-- If robot goes forward, reverse this.
-		speed_control(30);
-		move_wheels(left_speed, right_speed);
+	while (/*tary - overall_y > 0.1 || tarx - overall_x > 0.1*/ abs(target_rot - rot) > 5) {
+		left_speed = (target_rot - rot) / 5;
+		right_speed = (target_rot - rot) / 5;
+		speed_control(15);
+		// move_wheels(left_speed, right_speed);
 		update_position();
+		println(rot);
 		wait(10);
 	}
+	clear_screen();
 	brake_wheels();
-	println("nah bro");
-	wait(2000);
+	wait(5 * 1000);
 }
 
 //// DEFAULT FUNCTIONS ////
@@ -281,6 +290,7 @@ void autonomous() {
 	//// SETUP ////
 	inert.tare();
 	inert.reset();
+	wait(2300);
 	move_to(12, 12);
 	
 	//// a = 1 + pow(m, 2);
@@ -298,7 +308,7 @@ void autonomous() {
 void opcontrol() {
 	
 	// auton
-	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
 	pros::lcd::set_text(1, "OPCONTROL");
