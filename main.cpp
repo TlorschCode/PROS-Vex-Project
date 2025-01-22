@@ -44,6 +44,7 @@ float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
 float rot = {};
+float raw_rot = {};
 float target_rot = {};
 float xdiv = {};
 float dist = {};
@@ -70,7 +71,7 @@ const double pi = 3.14159265358979323846;
 // C = (h**2 + (y_intercept - k)**2 - r**2)
 // discriminant = B**2 - 4*A*C
 
-//// NON-DEFAULT FUNCTIONS ////
+//// * * * NON-DEFAULT FUNCTIONS * * * ////
 double to_radians(float degrees) {
 	return degrees * (pi / 180);
 }
@@ -97,19 +98,17 @@ void brake_wheels() {
 	bottom_right.brake();
 }
 
-bool clear_screen() {
+void clear_screen() {
 	pros::lcd::clear_line(6);
 	pros::lcd::clear_line(5);
 	pros::lcd::clear_line(4);
 	pros::lcd::clear_line(3);
 	pros::lcd::clear_line(2);
 	pros::lcd::clear_line(1);
-	return true;
 }
 
-bool wait(float time) {
+void wait(float time) {
 	pros::delay(time);
-	return true;
 }
 
 template <typename T>
@@ -125,15 +124,6 @@ void println(const T& input, int row = 1) {
         printtext = ss.str();
     }
     pros::lcd::set_text(row, printtext);
-}
-
-float get_rot() {
-    float rot = inert.get_rotation();
-    rot = fmod(rot + 180.0f, 360.0f);  // Shift range to [0, 360)
-    if (rot < 0) {
-        rot += 360.0f;  // Handle negative results from fmod
-    }
-    return rot - 180.0f;  // Shift range to [-180, 180]
 }
 
 void speed_control(float maxspeed) {
@@ -203,12 +193,22 @@ void control_scoring() {
 	}
 }
 
+float get_rot() {
+    raw_rot = inert.get_rotation();
+    raw_rot = fmod(raw_rot + 180, 360);  // Shift range to [0, 360)
+    if (raw_rot < 0) {
+        raw_rot += 360;  // Handle negative results from fmod
+    }
+	raw_rot -= 180;
+    return truncate(raw_rot);
+}
+
 void update_position() {  // Tracks and changes the robot's position based on odometry information
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity())) - (truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	overall_y = overall_y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED ***DEBUG***
-	overall_x = overall_x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED ***DEBUG***
+	overall_y = overall_y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
+	overall_x = overall_x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
 }
 
 void move_to(float tarx, float tary) {
@@ -228,20 +228,21 @@ void move_to(float tarx, float tary) {
 	clear_screen();
 
 	while (/*tary - overall_y > 0.1 || tarx - overall_x > 0.1*/ abs(target_rot - rot) > 5) {
-		left_speed = (target_rot - rot) / 5;
-		right_speed = (target_rot - rot) / 5;
-		speed_control(15);
-		// move_wheels(left_speed, right_speed);
-		update_position();
+		left_speed = (target_rot - rot) / -5;
+		right_speed = (target_rot - rot) / -5;
+		// speed_control(15);
+		move_wheels(left_speed, right_speed);
 		println(rot);
+		update_position();
 		wait(10);
 	}
-	clear_screen();
 	brake_wheels();
+	clear_screen();
+	println("DONE WITH AUTON");
 	wait(5 * 1000);
 }
 
-//// DEFAULT FUNCTIONS ////
+//// * * * DEFAULT FUNCTIONS * * * ////
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -290,7 +291,9 @@ void autonomous() {
 	//// SETUP ////
 	inert.tare();
 	inert.reset();
-	wait(2300);
+	wait(2.5 * 1000);
+	println(get_rot());
+	wait(2.5 * 1000);
 	move_to(12, 12);
 	
 	//// a = 1 + pow(m, 2);
@@ -308,7 +311,7 @@ void autonomous() {
 void opcontrol() {
 	
 	// auton
-	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
 	pros::lcd::set_text(1, "OPCONTROL");
