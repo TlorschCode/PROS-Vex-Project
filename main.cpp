@@ -46,6 +46,7 @@ float start_rot = {};
 float rot = {};
 float raw_rot = {};
 float target_rot = {};
+float rot_diff = {};
 float xdiv = {};
 float dist = {};
 float x, y = {};        // X and Y of robot
@@ -55,8 +56,6 @@ float m = {1.0f};       // Slope of line between two points
 float a, b, c = {};     // A, B, and C for quadratic equation
 float y_intercept = {1.0f};
 float overall_velocity = {};
-float overall_y = {};
-float overall_x = {};
 float rot_radians = {};
 float x_diff, y_diff {};
 float conveyor_speed = {440};
@@ -126,16 +125,31 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float maxspeed) {
-	if (left_speed > maxspeed) {
-		left_speed = maxspeed;
-	} else if (left_speed < (maxspeed * -1)) {
-		left_speed = maxspeed * -1;
+void speed_control(float minspeed = 0, float maxspeed) {
+	// Max Speed Control
+	if (abs(left_speed) > maxspeed) {
+		if (left_speed >= 0) {
+			left_speed = maxspeed;
+		} else if (left_speed <= 0) {
+			left_speed = -1 * maxspeed;
+		}
 	}
-	if (right_speed > max_speed) {
-		right_speed = max_speed;
-	} else if (right_speed < (max_speed * -1)) {
-		right_speed = max_speed * -1;
+	if (abs(right_speed) > maxspeed) {
+		if (right_speed >= 0) {
+			right_speed = maxspeed;
+		} else if (right_speed <= 0) {
+			right_speed = -1 * maxspeed;
+		}
+	}
+	// Min Speed Control
+	if (!minspeed == 0) {
+		if (abs(left_speed) < minspeed) {
+			if (left_speed >= 0) {
+				left_speed = minspeed;
+			} else if (left_speed <= 0) {
+				left_speed = -1 * minspeed;
+			}
+		}
 	}
 }
 
@@ -207,33 +221,39 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity())) - (truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	overall_y = overall_y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
-	overall_x = overall_x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
+	y = y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
+	x = x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
 }
 
 void move_to(float tarx, float tary) {
 	rot = get_rot();
-	x_diff = tarx - overall_x;
-	y_diff = tary - overall_y;
-	x = tarx;
-	y = tary;  // This is necessary, don't delete
-	target_rot = to_degrees(atan2((x - overall_x), (y - overall_y)));
-	dist = sqrt(abs(pow(x - overall_x, 2) + pow(y - overall_y, 2)));
+	x_diff = tarx - x;
+	y_diff = tary - y;
+	target_rot = to_degrees(atan2((tarx - x), (tary - y)));
+	rot_diff = target_rot - rot;
+	dist = sqrt(abs(pow(tarx - x, 2) + pow(tary - y, 2)));
 	clear_screen();
 	println(target_rot);
 	println(rot, 2);
-	println(target_rot - rot, 3);
-	println(target_rot - rot < 0.1f, 4);
+	println(rot_diff, 3);
+	println(rot_diff < 0.1f, 4);
 	wait(3 * 1000);
 	clear_screen();
 
-	while (/*tary - overall_y > 0.1 || tarx - overall_x > 0.1*/ abs(target_rot - rot) > 5) {
-		left_speed = (target_rot - rot) / -5;
-		right_speed = (target_rot - rot) / -5;
-		// speed_control(15);
+	while (/*tary - y > 0.1 || tarx - x > 0.1 ||*/ abs(rot_diff) > 2) {
+		left_speed = rot_diff / -2;
+		right_speed = rot_diff / -2;
+		if (abs(rot_diff) < 45) {
+			left_speed += y_diff / (rot_diff / 5);
+			right_speed -= y_diff / (rot_diff / 5);
+		}
+		speed_control(15);
 		move_wheels(left_speed, right_speed);
 		println(rot);
 		update_position();
+		rot_diff = target_rot - rot;
+		x_diff = tarx - x;
+		y_diff = tary - y;
 		wait(10);
 	}
 	brake_wheels();
@@ -294,7 +314,7 @@ void autonomous() {
 	wait(2.5 * 1000);
 	println(get_rot());
 	wait(2.5 * 1000);
-	move_to(12, 12);
+	move_to(12, 0);
 	
 	//// a = 1 + pow(m, 2);
 	//// b = 2 * (m * (y_intercept - k) - h);
