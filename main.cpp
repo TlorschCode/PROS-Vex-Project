@@ -1,11 +1,6 @@
 #include "main.h"
-#include "pros/error.h"
-#include "pros/imu.hpp"
-#include "pros/motors.hpp"
-#include "pros/misc.hpp"
 #include <iostream>
 #include "vector"
-#include <cmath>
 #include <string>
 #include <type_traits>
 #include <sstream>
@@ -63,7 +58,7 @@ float conveyor_speed = {440};
 vector <float> auton_x {12.0f, 12.0f};
 vector <float> auton_y {12.0f, 24.0f};
 // constants
-const double pi = 3.14159265358979323846;
+const double PI = 3.14159265358979323846;
 
 // A = 1 + m**2
 // B = 2 * (m * (y_intercept - k) - h)
@@ -72,11 +67,11 @@ const double pi = 3.14159265358979323846;
 
 //// * * * NON-DEFAULT FUNCTIONS * * * ////
 double to_radians(float degrees) {
-	return degrees * (pi / 180);
+	return degrees * (PI / 180);
 }
 
 float to_degrees(double radians) {
-	return radians * (180 / pi);
+	return radians * (180 / PI);
 }
 
 double truncate(double num, int cutoff = 2) {
@@ -98,12 +93,12 @@ void brake_wheels() {
 }
 
 void clear_screen() {
-	pros::lcd::clear_line(6);
-	pros::lcd::clear_line(5);
-	pros::lcd::clear_line(4);
-	pros::lcd::clear_line(3);
-	pros::lcd::clear_line(2);
 	pros::lcd::clear_line(1);
+	pros::lcd::clear_line(2);
+	pros::lcd::clear_line(3);
+	pros::lcd::clear_line(4);
+	pros::lcd::clear_line(5);
+	pros::lcd::clear_line(6);
 }
 
 void wait(float time) {
@@ -125,7 +120,7 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float minspeed = 0, float maxspeed) {
+void speed_control(float minspeed = 0, float maxspeed = 50) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
 		if (left_speed >= 0) {
@@ -225,13 +220,17 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	x = x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
 }
 
+void auton_control(float targetx, float targety) {
+	target_rot = to_degrees(atan2((targetx - x), (targety - y)));
+	rot_diff = target_rot - rot;
+	dist = sqrt(abs(pow(targetx - x, 2) + pow(targety - y, 2)));
+}
+
 void move_to(float tarx, float tary) {
 	rot = get_rot();
 	x_diff = tarx - x;
 	y_diff = tary - y;
-	target_rot = to_degrees(atan2((tarx - x), (tary - y)));
-	rot_diff = target_rot - rot;
-	dist = sqrt(abs(pow(tarx - x, 2) + pow(tary - y, 2)));
+	auton_control(tarx, tary);
 	clear_screen();
 	println(target_rot);
 	println(rot, 2);
@@ -240,16 +239,16 @@ void move_to(float tarx, float tary) {
 	wait(3 * 1000);
 	clear_screen();
 
-	while (/*tary - y > 0.1 || tarx - x > 0.1 ||*/ abs(rot_diff) > 2) {
+	while (tary - y > 3 || tarx - x > 3 || abs(rot_diff) > 2) {
+		auton_control(tarx, tary);
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
-		if (abs(rot_diff) < 45) {
-			left_speed += y_diff / (rot_diff / 5);
-			right_speed -= y_diff / (rot_diff / 5);
-		}
-		speed_control(15);
+		speed_control(10, 95);
+		left_speed += y_diff / (rot_diff / 55);
+		right_speed -= y_diff / (rot_diff / 55);
+		speed_control(75);
+		println(y_diff);
 		move_wheels(left_speed, right_speed);
-		println(rot);
 		update_position();
 		rot_diff = target_rot - rot;
 		x_diff = tarx - x;
@@ -272,7 +271,9 @@ void move_to(float tarx, float tary) {
 void initialize() {
 	// Start
 	pros::lcd::initialize();
+	clear_screen();
 	println("Starting: ALL");
+	get_rot();
 }
 
 /**
@@ -334,7 +335,7 @@ void opcontrol() {
 	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
-	pros::lcd::set_text(1, "OPCONTROL");
+	println("OPCONTROL");
 	wait(1000);
 	
 	//// CODE ////
