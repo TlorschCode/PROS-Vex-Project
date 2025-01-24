@@ -66,6 +66,12 @@ const double PI = 3.14159265358979323846;
 // discriminant = B**2 - 4*A*C
 
 //// * * * NON-DEFAULT FUNCTIONS * * * ////
+void check_quit_program() { //// REMOVE THIS FUNCTION
+	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+		exit(0);
+	}
+}
+
 double to_radians(float degrees) {
 	return degrees * (PI / 180);
 }
@@ -120,7 +126,7 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float minspeed = 0, float maxspeed = 50) {
+void speed_control(float maxspeed = 50, float minspeed = 10) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
 		if (left_speed >= 0) {
@@ -240,13 +246,14 @@ void move_to(float tarx, float tary) {
 	clear_screen();
 
 	while (tary - y > 3 || tarx - x > 3 || abs(rot_diff) > 2) {
+		check_quit_program();
 		auton_control(tarx, tary);
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
 		speed_control(10, 95);
 		left_speed += y_diff / (rot_diff / 55);
 		right_speed -= y_diff / (rot_diff / 55);
-		speed_control(75);
+		speed_control(75, 15);
 		println(y_diff);
 		move_wheels(left_speed, right_speed);
 		update_position();
@@ -332,7 +339,7 @@ void autonomous() {
 void opcontrol() {
 	
 	// auton
-	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
 	println("OPCONTROL");
@@ -343,8 +350,8 @@ void opcontrol() {
 	{
 		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
 		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 3;
-
 		control_motors(up_analog, left_analog);
+		speed_control(max_speed, 15);
 		control_scoring();
 
 		wait(10);
