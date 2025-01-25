@@ -158,20 +158,14 @@ void control_motors(float up, float left) {
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
 		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
-			max_speed += 10;
-			if (max_speed > 200) {
-				max_speed = 200;
-			}
+			max_speed += 15;
 		}
 		pressing_speed = true;
 	// DOWN //
 	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
 		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
-			max_speed -= 10;
-			if (max_speed < 10) {
-				max_speed = 10;
-			}
+			max_speed -= 15;
 		}
 		pressing_speed = true;
 	} else {
@@ -230,6 +224,8 @@ void auton_control(float targetx, float targety) {
 	target_rot = to_degrees(atan2((targetx - x), (targety - y)));
 	rot_diff = target_rot - rot;
 	dist = sqrt(abs(pow(targetx - x, 2) + pow(targety - y, 2)));
+	x_diff = targetx - x;
+	y_diff = targety - y;
 }
 
 void move_to(float tarx, float tary) {
@@ -242,24 +238,22 @@ void move_to(float tarx, float tary) {
 	println(rot, 2);
 	println(rot_diff, 3);
 	println(rot_diff < 0.1f, 4);
+	auton_control(tarx, tary);
 	wait(3 * 1000);
 	clear_screen();
 
 	while (tary - y > 3 || tarx - x > 3 || abs(rot_diff) > 2) {
 		check_quit_program();
-		auton_control(tarx, tary);
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
-		speed_control(10, 95);
-		left_speed += y_diff / (rot_diff / 55);
-		right_speed -= y_diff / (rot_diff / 55);
+		speed_control(95, 10);
+		left_speed += y_diff / ceil((rot_diff / 55));
+		right_speed -= y_diff / ceil((rot_diff / 55));
 		speed_control(75, 15);
 		println(y_diff);
 		move_wheels(left_speed, right_speed);
 		update_position();
-		rot_diff = target_rot - rot;
-		x_diff = tarx - x;
-		y_diff = tary - y;
+		auton_control(tarx, tary);
 		wait(10);
 	}
 	brake_wheels();
@@ -344,7 +338,7 @@ void opcontrol() {
 	//// INIT ////
 	println("OPCONTROL");
 	wait(1000);
-	
+
 	//// CODE ////
 	while (true)
 	{
