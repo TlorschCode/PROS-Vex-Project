@@ -172,12 +172,10 @@ void control_motors(float up, float left) {
 		// ALREADY PRESSING TOGGLE //
 		pressing_speed = false;
 	}
-	float left_speed = left - up;
-	float right_speed = left + up;
+	float left_speed = up - left;
+	float right_speed = up + left;
 	//// SPEED CONTROL ////
 	speed_control(max_speed);
-	left_speed *= -1;
-	right_speed *= -1;
 	move_wheels(left_speed, right_speed);
 }
 
@@ -215,7 +213,7 @@ float get_rot() {
 void update_position() {  // Tracks and changes the robot's position based on odometry information
 	rot = get_rot();
 	rot_radians = to_radians(rot);
-	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity())) - (truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
+	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
 	y = y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
 	x = x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
 }
@@ -241,22 +239,29 @@ void move_to(float tarx, float tary) {
 	auton_control(tarx, tary);
 	wait(3 * 1000);
 	clear_screen();
+	bool stop = true;
+	// NOTE TO SELF: MOTION TRACKING IS OFF, IT TRACKS MORE INCHES THAN WERE ACTUALLY TRAVELED
 
-	while (tary - y > 3 || tarx - x > 3 || abs(rot_diff) > 2) {
+	while (stop/*tary - y > 3 || tarx - x > 3 || abs(rot_diff) > 2*/) {
 		check_quit_program();
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
-		speed_control(95, 10);
-		left_speed += y_diff / ceil((rot_diff / 55));
-		right_speed -= y_diff / ceil((rot_diff / 55));
-		speed_control(75, 15);
-		println(y_diff);
+		// speed_control(95, 10);
+		// left_speed += y_diff / (ceil((rot_diff / 55)) / 1);
+		// right_speed -= y_diff / (ceil((rot_diff / 55)) / 1);
+		// speed_control(75, 15);
+		// println(rot_diff);
+		// println(x, 2);
+		// println(y, 3);
+		println((top_left.get_actual_velocity() / 100) * 360);
+		println(top_left.get_actual_velocity(), 2);
 		move_wheels(left_speed, right_speed);
 		update_position();
 		auton_control(tarx, tary);
 		wait(10);
 	}
 	brake_wheels();
+	wait(60 * 1000);
 	clear_screen();
 	println("DONE WITH AUTON");
 	wait(5 * 1000);
@@ -274,7 +279,9 @@ void initialize() {
 	pros::lcd::initialize();
 	clear_screen();
 	println("Starting: ALL");
-	get_rot();
+	// Hardware Config
+	top_right.set_reversed(true);
+	bottom_right.set_reversed(true);
 }
 
 /**
@@ -313,9 +320,9 @@ void autonomous() {
 	//// SETUP ////
 	inert.tare();
 	inert.reset();
-	wait(2.5 * 1000);
+	wait(2.5f * 1000);
 	println(get_rot());
-	wait(2.5 * 1000);
+	wait(2 * 1000);
 	move_to(12, 0);
 	
 	//// a = 1 + pow(m, 2);
@@ -334,6 +341,19 @@ void opcontrol() {
 	
 	// auton
 	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	inert.reset();
+	wait(2.5 * 1000);
+	inert.tare();
+	wait(100);
+	// move_wheels(20, 20);
+	// while (true) {
+	// 	check_quit_program();
+	// 	update_position();
+	// 	println(rot);
+	// 	println(x, 2);
+	// 	println(y, 3);
+	// 	wait(10);
+	// }
 
 	//// INIT ////
 	println("OPCONTROL");
@@ -343,11 +363,10 @@ void opcontrol() {
 	while (true)
 	{
 		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 3;
+		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2.3f;
 		control_motors(up_analog, left_analog);
 		speed_control(max_speed, 15);
 		control_scoring();
-
 		wait(10);
 	}
 }
