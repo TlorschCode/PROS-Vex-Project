@@ -246,13 +246,11 @@ void move_to(float tarx, float tary) {
 		check_quit_program();
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
-		// speed_control(95, 10);
-		// left_speed += y_diff / (ceil((rot_diff / 55)) / 1);
-		// right_speed -= y_diff / (ceil((rot_diff / 55)) / 1);
-		// speed_control(75, 15);
-		// println(rot_diff);
-		// println(x, 2);
-		// println(y, 3);
+		speed_control(95, 10);
+		left_speed += y_diff / (ceil((rot_diff / 55)) / 1);
+		right_speed -= y_diff / (ceil((rot_diff / 55)) / 1);
+		speed_control(75, 15);
+		println(rot_diff);
 		println((top_left.get_actual_velocity() / 100) * 360);
 		println(top_left.get_actual_velocity(), 2);
 		move_wheels(left_speed, right_speed);
@@ -282,6 +280,11 @@ void initialize() {
 	// Hardware Config
 	top_right.set_reversed(true);
 	bottom_right.set_reversed(true);
+	// Resetting inertial sensor
+	inert.reset();
+	wait(2 * 1000);
+	inert.tare();
+	wait(100);
 }
 
 /**
@@ -318,9 +321,6 @@ void competition_initialize() {
  */
 void autonomous() {
 	//// SETUP ////
-	inert.tare();
-	inert.reset();
-	wait(2.5f * 1000);
 	println(get_rot());
 	wait(2 * 1000);
 	move_to(12, 0);
@@ -336,24 +336,8 @@ void autonomous() {
 	// brake_wheels();
 }
 
-
 void opcontrol() {
-	
-	// auton
-	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
-	inert.reset();
-	wait(2.5 * 1000);
-	inert.tare();
-	wait(100);
-	// move_wheels(20, 20);
-	// while (true) {
-	// 	check_quit_program();
-	// 	update_position();
-	// 	println(rot);
-	// 	println(x, 2);
-	// 	println(y, 3);
-	// 	wait(10);
-	// }
+	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	//// INIT ////
 	println("OPCONTROL");
