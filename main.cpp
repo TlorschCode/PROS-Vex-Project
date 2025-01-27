@@ -11,7 +11,7 @@
 
 using namespace std;
 
-//// CONSTRUCTORS ////
+/// CONSTRUCTORS ///
 // pneumatics -
 pros::adi::Pneumatics stake_lift(1, true);
 
@@ -66,7 +66,7 @@ const double PI = 3.14159265358979323846;
 // discriminant = B**2 - 4*A*C
 
 //// * * * NON-DEFAULT FUNCTIONS * * * ////
-void check_quit_program() { //// REMOVE THIS FUNCTION
+void check_quit_program() { /// REMOVE THIS FUNCTION
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
 		exit(0);
 	}
@@ -174,7 +174,7 @@ void control_motors(float up, float left) {
 	}
 	float left_speed = up - left;
 	float right_speed = up + left;
-	//// SPEED CONTROL ////
+	/// SPEED CONTROL ///
 	speed_control(max_speed);
 	move_wheels(left_speed, right_speed);
 }
@@ -325,9 +325,9 @@ void autonomous() {
 	wait(2 * 1000);
 	move_to(12, 0);
 	
-	//// a = 1 + pow(m, 2);
-	//// b = 2 * (m * (y_intercept - k) - h);
-	//// c = (pow(h, 2) + pow((y_intercept - k), 2) - pow(r, 2));
+	/// a = 1 + pow(m, 2);
+	/// b = 2 * (m * (y_intercept - k) - h);
+	/// c = (pow(h, 2) + pow((y_intercept - k), 2) - pow(r, 2));
 
 	
 	update_position();
@@ -339,11 +339,11 @@ void autonomous() {
 void opcontrol() {
 	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
-	//// INIT ////
+	/// INIT ///
 	println("OPCONTROL");
 	wait(1000);
 
-	//// CODE ////
+	/// CODE ///
 	while (true)
 	{
 		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
