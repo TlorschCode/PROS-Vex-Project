@@ -30,11 +30,12 @@ pros::Motor conveyor(7, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degree
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 
-//// VARIABLES, ARRAYS, LISTS, ECT ////
+/// VARIABLES, ARRAYS, LISTS, ECT ///
 bool pressing_speed = {false};
 bool pressing_stake = {false};
 int left_analog = {};
 int up_analog = {};
+int reversed = {1};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -84,7 +85,7 @@ double truncate(double num, int cutoff = 2) {
 	return floor(num * pow(10, cutoff)) / pow(10, cutoff);
 }
 
-void move_wheels(float speedleft, float speedright) {
+void move_motors(float speedleft, float speedright) {
 	top_left.move_velocity(speedleft);
 	bottom_left.move_velocity(speedleft);
 	top_right.move_velocity(speedright);
@@ -126,7 +127,7 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float maxspeed = 50, float minspeed = 10) {
+void speed_control(float maxspeed = 50, float minspeed = 2) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
 		if (left_speed >= 0) {
@@ -143,13 +144,32 @@ void speed_control(float maxspeed = 50, float minspeed = 10) {
 		}
 	}
 	// Min Speed Control
-	if (!minspeed == 0) {
+	if (!minspeed == 2) {
 		if (abs(left_speed) < minspeed) {
+			println("nar bruv");
 			if (left_speed >= 0) {
 				left_speed = minspeed;
 			} else if (left_speed <= 0) {
 				left_speed = -1 * minspeed;
 			}
+		}
+		if (abs(right_speed) < minspeed) {
+			println("nar bruv");
+			if (right_speed >= 0) {
+				right_speed = minspeed;
+			} else if (right_speed <= 0) {
+				right_speed = -1 * minspeed;
+			}
+		}
+	}
+}
+
+void check_reverse_motors() {
+	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+		if (reversed == 1) {
+			reversed = -1;
+		} else {
+			reversed = 1;
 		}
 	}
 }
@@ -158,25 +178,30 @@ void control_motors(float up, float left) {
 	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) {
 		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
-			max_speed += 15;
+			max_speed += 40;
 		}
 		pressing_speed = true;
 	// DOWN //
 	} else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)) {
 		// CHECK ALREADY PRESSING //
 		if (!pressing_speed) {
-			max_speed -= 15;
+			max_speed -= 40;
 		}
 		pressing_speed = true;
 	} else {
 		// ALREADY PRESSING TOGGLE //
 		pressing_speed = false;
 	}
-	float left_speed = up - left;
-	float right_speed = up + left;
+	if (max_speed < 5) {
+		max_speed = 5;
+	} else if (max_speed > 120) {
+		max_speed = 120;
+	}
+	left_speed = (up * reversed) - left;
+	right_speed = (up * reversed) + left;
 	/// SPEED CONTROL ///
-	speed_control(max_speed);
-	move_wheels(left_speed, right_speed);
+	speed_control(max_speed, 15);
+	move_motors(left_speed, right_speed);
 }
 
 void control_scoring() {
@@ -214,11 +239,12 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	y = y + (((((overall_velocity / 360) * 0.1f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
-	x = x + (((((overall_velocity / 360) * 0.1f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
+	y = y + (((((overall_velocity / 360) * 0.01f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
+	x = x + (((((overall_velocity / 360) * 0.01f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
 }
 
 void auton_control(float targetx, float targety) {
+	update_position();
 	target_rot = to_degrees(atan2((targetx - x), (targety - y)));
 	rot_diff = target_rot - rot;
 	dist = sqrt(abs(pow(targetx - x, 2) + pow(targety - y, 2)));
@@ -227,9 +253,6 @@ void auton_control(float targetx, float targety) {
 }
 
 void move_to(float tarx, float tary) {
-	rot = get_rot();
-	x_diff = tarx - x;
-	y_diff = tary - y;
 	auton_control(tarx, tary);
 	clear_screen();
 	println(target_rot);
@@ -239,22 +262,20 @@ void move_to(float tarx, float tary) {
 	auton_control(tarx, tary);
 	wait(3 * 1000);
 	clear_screen();
-	bool stop = true;
 	// NOTE TO SELF: MOTION TRACKING IS OFF, IT TRACKS MORE INCHES THAN WERE ACTUALLY TRAVELED
 
-	while (stop/*tary - y > 3 || tarx - x > 3 || abs(rot_diff) > 2*/) {
+	while (abs(y_diff) > 3 || abs(x_diff) > 3 || abs(rot_diff) > 2) {
 		check_quit_program();
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
-		speed_control(95, 10);
-		left_speed += y_diff / (ceil((rot_diff / 55)) / 1);
-		right_speed -= y_diff / (ceil((rot_diff / 55)) / 1);
-		speed_control(75, 15);
-		println(rot_diff);
-		println((top_left.get_actual_velocity() / 100) * 360);
-		println(top_left.get_actual_velocity(), 2);
-		move_wheels(left_speed, right_speed);
-		update_position();
+		speed_control(95, 15);
+		left_speed -= (y_diff) / ceil((rot_diff / 55));
+		right_speed += (y_diff) / ceil((rot_diff / 55));
+		right_speed *= -1;
+		left_speed *= -1;
+		println(x);
+		println(y, 2);
+		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
 	}
@@ -320,7 +341,7 @@ void competition_initialize() {
  * from where it left off.
  */
 void autonomous() {
-	//// SETUP ////
+	/// SETUP ///
 	println(get_rot());
 	wait(2 * 1000);
 	move_to(12, 0);
@@ -337,19 +358,22 @@ void autonomous() {
 }
 
 void opcontrol() {
-	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	/// INIT ///
 	println("OPCONTROL");
 	wait(1000);
+	clear_screen();
+	wait(10);
 
 	/// CODE ///
 	while (true)
 	{
 		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
 		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2.3f;
+		check_reverse_motors();
 		control_motors(up_analog, left_analog);
-		speed_control(max_speed, 15);
+		speed_control(max_speed);
 		control_scoring();
 		wait(10);
 	}
