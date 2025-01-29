@@ -239,7 +239,7 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
 	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.15f) * cos(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
 	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.15f) * sin(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
-	// VEX ROBOTS ARE SO STUPID THEY DON'T TRACK WHEEL POSITION CORRECTLY I SHOULDN'T HAVE TO DIVIDE BY 1.15f BUT I DO CUZ I GUESS VEX IS OUTSIDE THE LAWS OF CONVENTIONAL MATHEMATICS
+	// VEX ROBOTS ARE SO STUPID THEY DON'T TRACK WHEEL POSITION CORRECTLY I SHOULDN'T HAVE TO DIVIDE BY 1.15f BUT I DO CUZ I GUESS VEX IS OUTSIDE THE LAWS OF CONVENTIONAL MATHEMATICS //
 }
 
 void auton_control(float targetx, float targety) {
