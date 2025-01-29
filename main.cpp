@@ -127,7 +127,7 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float maxspeed = 50, float minspeed = 2) {
+void speed_control(float maxspeed = 50, float minspeed = 0) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
 		if (left_speed >= 0) {
@@ -144,22 +144,20 @@ void speed_control(float maxspeed = 50, float minspeed = 2) {
 		}
 	}
 	// Min Speed Control
-	if (!minspeed == 2) {
-		if (abs(left_speed) < minspeed) {
-			println("nar bruv");
-			if (left_speed >= 0) {
-				left_speed = minspeed;
-			} else if (left_speed <= 0) {
-				left_speed = -1 * minspeed;
-			}
+	if (abs(left_speed) < minspeed) {
+		println("nar bruv");
+		if (left_speed >= 0) {
+			left_speed = minspeed;
+		} else if (left_speed <= 0) {
+			left_speed = -1 * minspeed;
 		}
-		if (abs(right_speed) < minspeed) {
-			println("nar bruv");
-			if (right_speed >= 0) {
-				right_speed = minspeed;
-			} else if (right_speed <= 0) {
-				right_speed = -1 * minspeed;
-			}
+	}
+	if (abs(right_speed) < minspeed) {
+		println("nar bruv");
+		if (right_speed >= 0) {
+			right_speed = minspeed;
+		} else if (right_speed <= 0) {
+			right_speed = -1 * minspeed;
 		}
 	}
 }
@@ -239,8 +237,9 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	y = y + ((((overall_velocity / 360) * 0.1f) * 12.56f) * cos(rot_radians));  // CHANGE 11.65 AS NEEDED **DEBUG**
-	x = x + ((((overall_velocity / 360) * 0.1f) * 12.56f) * sin(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
+	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.15f) * cos(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
+	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.15f) * sin(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
+	// VEX ROBOTS ARE SO STUPID THEY DON'T TRACK WHEEL POSITION CORRECTLY I SHOULDN'T HAVE TO DIVIDE BY 1.15f BUT I DO CUZ I GUESS VEX IS OUTSIDE THE LAWS OF CONVENTIONAL MATHEMATICS
 }
 
 void auton_control(float targetx, float targety) {
@@ -263,16 +262,17 @@ void move_to(float tarx, float tary) {
 	println(tary);
 	println(y, 2);
 	wait(5 * 1000);
-	// NOTE TO SELF: MOTION TRACKING IS OFF, IT TRACKS MORE INCHES THAN WERE ACTUALLY TRAVELED
+	// TODO: Fix motion tracking >:/
 
-	while (abs(y_diff) > 3 /*|| abs(x_diff) > 3 || abs(rot_diff) > 2*/) {
+	while (abs(y_diff) > 0.01f /*|| abs(x_diff) > 3 || abs(rot_diff) > 2*/) {
 		check_quit_program();
-		left_speed = rot_diff / -2;
-		right_speed = rot_diff / -2;
-		left_speed += (y_diff) * 2 /*/ ceil((rot_diff / 55)) /**/;
-		right_speed += (y_diff) * 2 /*/ ceil((rot_diff / 55)) /**/;
-		println(x);
-		println(y, 2);
+		// left_speed = rot_diff / -2;
+		// right_speed = rot_diff / -2;
+		left_speed = (y_diff) /*/ ceil((rot_diff / 55)) /**/;
+		right_speed = (y_diff) /*/ ceil((rot_diff / 55)) /**/;
+		speed_control(15, 5);
+		println(y);
+		println(y_diff, 2);
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
@@ -371,7 +371,7 @@ void opcontrol() {
 		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2.3f;
 		check_reverse_motors();
 		control_motors(up_analog, left_analog);
-		speed_control(max_speed);
+		speed_control(max_speed, 0);
 		control_scoring();
 		wait(10);
 	}
