@@ -239,8 +239,8 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	y = y + (((((overall_velocity / 360) * 0.01f) * 11.65f) * cos(rot_radians)) * 2);  // CHANGE 11.65 AS NEEDED **DEBUG**
-	x = x + (((((overall_velocity / 360) * 0.01f) * 13.50f) * sin(rot_radians)) * 2);  // CHANGE 12.56 AS NEEDED **DEBUG**
+	y = y + ((((overall_velocity / 360) * 0.1f) * 12.56f) * cos(rot_radians));  // CHANGE 11.65 AS NEEDED **DEBUG**
+	x = x + ((((overall_velocity / 360) * 0.1f) * 12.56f) * sin(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
 }
 
 void auton_control(float targetx, float targety) {
@@ -254,36 +254,34 @@ void auton_control(float targetx, float targety) {
 
 void move_to(float tarx, float tary) {
 	auton_control(tarx, tary);
+	// clear_screen();
+	// println(target_rot);
+	// println(rot, 2);
+	// println(rot_diff, 3);
+	// println(rot_diff < 0.1f, 4);
 	clear_screen();
-	println(target_rot);
-	println(rot, 2);
-	println(rot_diff, 3);
-	println(rot_diff < 0.1f, 4);
-	auton_control(tarx, tary);
-	wait(3 * 1000);
-	clear_screen();
+	println(tary);
+	println(y, 2);
+	wait(5 * 1000);
 	// NOTE TO SELF: MOTION TRACKING IS OFF, IT TRACKS MORE INCHES THAN WERE ACTUALLY TRAVELED
 
-	while (abs(y_diff) > 3 || abs(x_diff) > 3 || abs(rot_diff) > 2) {
+	while (abs(y_diff) > 3 /*|| abs(x_diff) > 3 || abs(rot_diff) > 2*/) {
 		check_quit_program();
 		left_speed = rot_diff / -2;
 		right_speed = rot_diff / -2;
-		speed_control(95, 15);
-		left_speed -= (y_diff) / ceil((rot_diff / 55));
-		right_speed += (y_diff) / ceil((rot_diff / 55));
-		right_speed *= -1;
-		left_speed *= -1;
+		left_speed += (y_diff) * 2 /*/ ceil((rot_diff / 55)) /**/;
+		right_speed += (y_diff) * 2 /*/ ceil((rot_diff / 55)) /**/;
 		println(x);
 		println(y, 2);
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
 	}
+	controller.rumble("-.");
 	brake_wheels();
-	wait(60 * 1000);
+	println("DONE WITH AUTON", 4);
+	wait(2 * 1000);
 	clear_screen();
-	println("DONE WITH AUTON");
-	wait(5 * 1000);
 }
 
 //// * * * DEFAULT FUNCTIONS * * * ////
@@ -343,8 +341,8 @@ void competition_initialize() {
 void autonomous() {
 	/// SETUP ///
 	println(get_rot());
-	wait(2 * 1000);
-	move_to(12, 0);
+	wait(100);
+	move_to(0, 12);
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
@@ -358,7 +356,7 @@ void autonomous() {
 }
 
 void opcontrol() {
-	// autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
 
 	/// INIT ///
 	println("OPCONTROL");
