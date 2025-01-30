@@ -222,7 +222,7 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
 	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.167f) * cos(rot_radians));
 	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.167f) * sin(rot_radians));
-	//           -         -        -            Change this ^^^^^^ as needed BECAUSE VEX ODOMETRY INFO IS STUPID
+	//           -         -        -            Change this ^^^^^^ as needed.
 }
 
 void auton_control(float targetx, float targety) {
