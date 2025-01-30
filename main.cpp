@@ -127,7 +127,7 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float maxspeed = 50) {
+void speed_control(float maxspeed = 50, bool auton = false, float minspeed = 5) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
 		if (left_speed >= 0) {
@@ -141,6 +141,22 @@ void speed_control(float maxspeed = 50) {
 			right_speed = maxspeed;
 		} else if (right_speed <= 0) {
 			right_speed = -1 * maxspeed;
+		}
+	}
+	if (auton) {
+		if (abs(left_speed) < minspeed) {
+			if (y_diff > 0) {
+				left_speed = minspeed;
+			} else if (y_diff < 0) {
+				left_speed = minspeed * -1;
+			}
+		}
+		if (abs(right_speed) < minspeed) {
+			if (y_diff > 0) {
+				right_speed = minspeed;
+			} else if (y_diff < 0) {
+				right_speed = minspeed * -1;
+			}
 		}
 	}
 }
@@ -220,9 +236,9 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.167f) * cos(rot_radians));
-	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.167f) * sin(rot_radians));
-	//           -         -        -            Change this ^^^^^^ as needed.
+	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.155f) * cos(rot_radians));
+	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.155f) * sin(rot_radians));
+	//           -         -        -            Change this ^^^^^^ as needed BECAUSE VEX ODOMETRY IS STUPID
 }
 
 void auton_control(float targetx, float targety) {
@@ -254,7 +270,7 @@ void move_to(float tarx, float tary) {
 		right_speed = (y_diff) /* + (rot_diff / -0.05) + ceil((rot_diff / 55)) /**/;
 		left_speed *= 5;
 		right_speed *= 5;
-		speed_control(15);
+		speed_control(15, true, 5);
 		println(y);
 		// println(rot_diff, 2);
 		move_motors(left_speed, right_speed);
