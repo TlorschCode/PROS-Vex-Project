@@ -127,7 +127,7 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
-void speed_control(float maxspeed = 50, float minspeed = 0) {
+void speed_control(float maxspeed = 50) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
 		if (left_speed >= 0) {
@@ -141,23 +141,6 @@ void speed_control(float maxspeed = 50, float minspeed = 0) {
 			right_speed = maxspeed;
 		} else if (right_speed <= 0) {
 			right_speed = -1 * maxspeed;
-		}
-	}
-	// Min Speed Control
-	if (abs(left_speed) < minspeed) {
-		println("nar bruv");
-		if (left_speed >= 0) {
-			left_speed = minspeed;
-		} else if (left_speed <= 0) {
-			left_speed = -1 * minspeed;
-		}
-	}
-	if (abs(right_speed) < minspeed) {
-		println("nar bruv");
-		if (right_speed >= 0) {
-			right_speed = minspeed;
-		} else if (right_speed <= 0) {
-			right_speed = -1 * minspeed;
 		}
 	}
 }
@@ -198,7 +181,7 @@ void control_motors(float up, float left) {
 	left_speed = (up * reversed) - left;
 	right_speed = (up * reversed) + left;
 	/// SPEED CONTROL ///
-	speed_control(max_speed, 15);
+	speed_control(max_speed);
 	move_motors(left_speed, right_speed);
 }
 
@@ -237,9 +220,9 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.15f) * cos(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
-	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.15f) * sin(rot_radians));  // CHANGE 12.56 AS NEEDED **DEBUG**
-	// VEX ROBOTS ARE SO STUPID THEY DON'T TRACK WHEEL POSITION CORRECTLY I SHOULDN'T HAVE TO DIVIDE BY 1.15f BUT I DO CUZ I GUESS VEX IS OUTSIDE THE LAWS OF CONVENTIONAL MATHEMATICS //
+	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.167f) * cos(rot_radians));
+	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.167f) * sin(rot_radians));
+	//           -         -        -            Change this ^^^^^^ as needed BECAUSE VEX ODOMETRY INFO IS STUPID
 }
 
 void auton_control(float targetx, float targety) {
@@ -262,17 +245,18 @@ void move_to(float tarx, float tary) {
 	println(tary);
 	println(y, 2);
 	wait(5 * 1000);
-	// TODO: Fix motion tracking >:/
+	clear_screen();
 
 	while (abs(y_diff) > 0.01f /*|| abs(x_diff) > 3 || abs(rot_diff) > 2*/) {
+		// TODO: Get the robot to turn, then move forward.
 		check_quit_program();
-		// left_speed = rot_diff / -2;
-		// right_speed = rot_diff / -2;
-		left_speed = (y_diff) /*/ ceil((rot_diff / 55)) /**/;
-		right_speed = (y_diff) /*/ ceil((rot_diff / 55)) /**/;
-		speed_control(15, 5);
+		left_speed = (y_diff) /* + (rot_diff / -0.05) + ceil((rot_diff / 55)) /**/;
+		right_speed = (y_diff) /* + (rot_diff / -0.05) + ceil((rot_diff / 55)) /**/;
+		left_speed *= 5;
+		right_speed *= 5;
+		speed_control(15);
 		println(y);
-		println(y_diff, 2);
+		// println(rot_diff, 2);
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
@@ -280,7 +264,7 @@ void move_to(float tarx, float tary) {
 	controller.rumble("-.");
 	brake_wheels();
 	println("DONE WITH AUTON", 4);
-	wait(2 * 1000);
+	wait(20 * 1000);
 	clear_screen();
 }
 
@@ -299,6 +283,10 @@ void initialize() {
 	// Hardware Config
 	top_right.set_reversed(true);
 	bottom_right.set_reversed(true);
+	top_left.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+	bottom_left.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+	top_right.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+	bottom_left.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 	// Resetting inertial sensor
 	inert.reset();
 	wait(2 * 1000);
@@ -342,7 +330,7 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(0, 12);
+	move_to(0, 6);
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
@@ -357,6 +345,7 @@ void autonomous() {
 
 void opcontrol() {
 	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
+	exit(0);
 
 	/// INIT ///
 	println("OPCONTROL");
@@ -371,7 +360,7 @@ void opcontrol() {
 		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2.3f;
 		check_reverse_motors();
 		control_motors(up_analog, left_analog);
-		speed_control(max_speed, 0);
+		speed_control(max_speed);
 		control_scoring();
 		wait(10);
 	}
