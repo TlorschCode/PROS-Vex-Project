@@ -33,6 +33,10 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 /// VARIABLES, ARRAYS, LISTS, ECT ///
 bool pressing_speed = {false};
 bool pressing_stake = {false};
+bool auton_y = {true};
+bool auton_x = {true};
+bool auton_rot = {true};
+bool finish_move = {true};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
@@ -56,8 +60,8 @@ float rot_radians = {};
 float x_diff, y_diff {};
 float conveyor_speed = {440};
 // points for auton
-vector <float> auton_x {12.0f, 12.0f};
-vector <float> auton_y {12.0f, 24.0f};
+vector <float> points_x {12.0f, 12.0f};
+vector <float> points_y {12.0f, 24.0f};
 // constants
 const double PI = 3.14159265358979323846;
 
@@ -248,31 +252,43 @@ void auton_control(float targetx, float targety) {
 	dist = sqrt(abs(pow(targetx - x, 2) + pow(targety - y, 2)));
 	x_diff = targetx - x;
 	y_diff = targety - y;
+	if (!(auton_y || auton_x || auton_rot)) {
+		auton_y = abs(y_diff) > 0.1f;
+		auton_x = abs(x_diff) > 0.2f;
+		auton_rot = abs(rot_diff) > 3;
+	}
+	if (abs(y_diff) < 0.1 && abs(x_diff) < 0.2) {
+		auton_y = false;
+		auton_x = false;
+		if (abs(rot_diff) < 3) {
+			auton_rot = false;
+		} else if (abs(rot_diff) > 175 && y_diff < 0) {
+//?			In case the robot overshoots its goal, I 
+//?			want it to reverse, not turn all the way
+//?			around and eventually get confused
+			auton_rot = false;
+			auton_y = true;
+		}
+	}
 }
 
 void move_to(float tarx, float tary) {
 	auton_control(tarx, tary);
-	// clear_screen();
-	// println(target_rot);
-	// println(rot, 2);
-	// println(rot_diff, 3);
-	// println(rot_diff < 0.1f, 4);
 	clear_screen();
-	println(tary);
-	println(y, 2);
-	wait(5 * 1000);
-	clear_screen();
-
-	while (abs(y_diff) > 0.01f /*|| abs(x_diff) > 3 || abs(rot_diff) > 2*/) {
-		// TODO: Get the robot to turn, then move forward.
+	auton_x = abs(x_diff) > 0.2f;
+	auton_y = abs(y_diff) > 0.1f;
+	auton_rot = abs(rot_diff) > 3;
+	wait(100);
+	// DONE: Get the robot to go to a target Y position.
+	// TODO: Get the robot to go to a target Y position and a target rotation.
+	// TODO: Get the robot to go to a target position and target rotation.
+	while (auton_y || auton_rot || auton_x) {
 		check_quit_program();
-		left_speed = (y_diff) /* + (rot_diff / -0.05) + ceil((rot_diff / 55)) /**/;
-		right_speed = (y_diff) /* + (rot_diff / -0.05) + ceil((rot_diff / 55)) /**/;
-		left_speed *= 5;
-		right_speed *= 5;
+		left_speed = (y_diff) + ceil((rot_diff / 55)) + x_diff;
+		right_speed = (y_diff) + ceil((rot_diff / 55)) + x_diff;
 		speed_control(15, true, 5);
 		println(y);
-		// println(rot_diff, 2);
+		println(rot_diff, 2);
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
@@ -346,7 +362,7 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(0, 6);
+	move_to(0, 12);
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
