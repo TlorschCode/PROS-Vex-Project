@@ -40,6 +40,18 @@ bool finish_move = {true};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
+float test_left = {};
+float test_right = {};
+float prev_i_left = {};
+float prev_i_right = {};
+float p_left = {};
+float p_right = {};
+float i_left = {};
+float i_right = {};
+float i_gain = {0.04};
+float d_left = {};
+float d_right = {};
+float d_gain = {0.02};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -256,20 +268,6 @@ void auton_control(float targetx, float targety) {
 	} else if ((abs(x_diff) > 1.5f && abs(y_diff) > 1.5f)) {
 		auton_rot = true;
 	}
-
-// 	if (abs(y_diff) < 0.1 && abs(x_diff) < 0.2) {
-// 		auton_y = false;
-// 		auton_x = false;
-// 		if (abs(rot_diff) < 3) {
-// 			auton_rot = false;
-// 		} else if (abs(rot_diff) > 175 && y_diff < 0) {
-// //?			In case the robot overshoots its goal, I 
-// //?			want it to reverse, not turn all the way
-// //?			around and eventually get confused
-// 			auton_rot = false;
-// 			auton_y = true;
-// 		}
-// 	}
 }
 
 void move_to(float tarx, float tary) {
@@ -283,12 +281,24 @@ void move_to(float tarx, float tary) {
 	// DONE: Get the robot to go to a target Y position.
 	// DONE: Get the robot to go to a target Y position and a target rotation.
 	// DONE: Get the robot to go to a target position and target rotation.
-	// TODO: Make the movement smoother and faster.
+	// TODO: Make the movement smoother and faster, and add PID.
 	// TODO: If necessary, make scaling factor dynamic based on velocity.
 	while (auton_y || auton_x) {
+		//|   PID   |//
+		test_left = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
+		test_right = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
+		p_left = test_left;
+		p_right = test_right;
+		prev_i_left = i_left;
+		prev_i_right = i_right;
+		i_left = i_left + p_left;
+		i_right = i_right + p_right;
+		d_left = prev_i_left - i_left;
+		d_right = prev_i_right - i_right;
+		//|  Auton  |//
 		check_pause_program();
-		left_speed = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
-		right_speed = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) + (rot_diff * auton_rot);
+		left_speed = p_left + (i_left * i_gain) + (d_left * d_gain);
+		right_speed = p_right + (i_right * i_gain) + (d_right * d_gain);
 		// speed_control(15);
 		left_speed = map_value(left_speed, -200.0f, 200.0f, -60.0f, 60.0f);
 		right_speed = map_value(right_speed, -200.0f, 200.0f, -60.0f, 60.0f);
