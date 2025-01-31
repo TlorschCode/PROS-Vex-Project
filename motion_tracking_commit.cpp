@@ -82,12 +82,6 @@ const double PI = 3.14159265358979323846;
 // discriminant = B**2 - 4*A*C
 
 //// * * * NON-DEFAULT FUNCTIONS * * * ////
-void check_quit_program() { /// REMOVE THIS FUNCTION
-	if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
-		exit(0);
-	}
-}
-
 double to_radians(float degrees) {
 	return degrees * (PI / 180);
 }
@@ -142,6 +136,15 @@ void println(const T& input, int row = 1) {
     pros::lcd::set_text(row, printtext);
 }
 
+void check_pause_program() { /// REMOVE THIS FUNCTION
+	if (controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+		brake_wheels();
+		while (!controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
+			wait(10);
+		}
+	}
+}
+
 void speed_control(float maxspeed = 50, bool auton = false, float minspeed = 5) {
 	// Max Speed Control
 	if (abs(left_speed) > maxspeed) {
@@ -158,21 +161,10 @@ void speed_control(float maxspeed = 50, bool auton = false, float minspeed = 5) 
 			right_speed = -1 * maxspeed;
 		}
 	}
-	if (auton) {
-		if (abs(left_speed) < minspeed) {
-			if (y_diff > 0) {
-				left_speed = minspeed;
-			} else if (y_diff < 0) {
-				left_speed = minspeed * -1;
-			}
-		}
-		if (abs(right_speed) < minspeed) {
-			if (y_diff > 0) {
-				right_speed = minspeed;
-			} else if (y_diff < 0) {
-				right_speed = minspeed * -1;
-			}
-		}
+	if (abs(left_speed) < 1) {
+		left_speed *= 10;
+	} else if (abs(right_speed) < 1) {
+		right_speed *= 10;
 	}
 }
 
@@ -263,24 +255,28 @@ void auton_control(float targetx, float targety) {
 	dist = sqrt(abs(pow(targetx - x, 2) + pow(targety - y, 2)));
 	x_diff = targetx - x;
 	y_diff = targety - y;
-	if (!(auton_y || auton_x || auton_rot)) {
-		auton_y = abs(y_diff) > 0.1f;
-		auton_x = abs(x_diff) > 0.2f;
-		auton_rot = abs(rot_diff) > 3;
+//? Don't question the logic. Trust.
+	auton_x = abs(x_diff) > 0.3f;
+	auton_y = abs(y_diff) > 0.3f;
+	if (abs(rot_diff) <= 3) {
+		auton_rot = false;
+	} else if ((abs(x_diff) > 1.5f && abs(y_diff) > 1.5f)) {
+		auton_rot = true;
 	}
-	if (abs(y_diff) < 0.1 && abs(x_diff) < 0.2) {
-		auton_y = false;
-		auton_x = false;
-		if (abs(rot_diff) < 3) {
-			auton_rot = false;
-		} else if (abs(rot_diff) > 175 && y_diff < 0) {
-//?			In case the robot overshoots its goal, I 
-//?			want it to reverse, not turn all the way
-//?			around and eventually get confused
-			auton_rot = false;
-			auton_y = true;
-		}
-	}
+
+// 	if (abs(y_diff) < 0.1 && abs(x_diff) < 0.2) {
+// 		auton_y = false;
+// 		auton_x = false;
+// 		if (abs(rot_diff) < 3) {
+// 			auton_rot = false;
+// 		} else if (abs(rot_diff) > 175 && y_diff < 0) {
+// //?			In case the robot overshoots its goal, I 
+// //?			want it to reverse, not turn all the way
+// //?			around and eventually get confused
+// 			auton_rot = false;
+// 			auton_y = true;
+// 		}
+// 	}
 }
 
 void move_to(float tarx, float tary) {
@@ -289,17 +285,21 @@ void move_to(float tarx, float tary) {
 	auton_x = abs(x_diff) > 0.2f;
 	auton_y = abs(y_diff) > 0.1f;
 	auton_rot = abs(rot_diff) > 3;
-	wait(100);
+	println(auton_x);
+	wait(1000);
 	// DONE: Get the robot to go to a target Y position.
 	// TODO: Get the robot to go to a target Y position and a target rotation.
 	// TODO: Get the robot to go to a target position and target rotation.
-	while (auton_y || auton_rot || auton_x) {
-		check_quit_program();
-		left_speed = (y_diff) + ceil((rot_diff / 55)) + x_diff;
-		right_speed = (y_diff) + ceil((rot_diff / 55)) + x_diff;
-		speed_control(15, true, 5);
-		println(y);
-		println(rot_diff, 2);
+	while (auton_y || auton_x) {
+		check_pause_program();
+		left_speed = (((y_diff * abs(cos(rot))) - (x_diff * abs(sin(rot)))) / ceil((rot_diff / 55))) - (rot_diff * auton_rot);
+		right_speed = (((y_diff * abs(cos(rot))) - (x_diff * abs(sin(rot)))) / ceil((rot_diff / 55))) + (rot_diff * auton_rot);
+		speed_control(15);
+		println(x, 1);
+		println(x_diff, 2);
+		println(rot, 3);
+		println(rot_diff, 4);
+		println((x_diff * abs(sin(rot))), 5);
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
@@ -373,7 +373,7 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(0, 12);
+	move_to(12, 0);
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
