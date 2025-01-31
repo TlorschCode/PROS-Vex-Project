@@ -40,6 +40,18 @@ bool finish_move = {true};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
+float test_left = {};
+float test_right = {};
+float prev_i_left = {};
+float prev_i_right = {};
+float p_left = {};
+float p_right = {};
+float i_left = {};
+float i_right = {};
+float i_gain = {0.04};
+float d_left = {};
+float d_right = {};
+float d_gain = {0.02};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -123,6 +135,10 @@ void println(const T& input, int row = 1) {
         printtext = ss.str();
     }
     pros::lcd::set_text(row, printtext);
+}
+
+double map_value(float input, float input_start, float input_end, float output_start, double output_end) {
+    return output_start + (output_end - output_start) * ((input - input_start) / (input_end - input_start));
 }
 
 void check_pause_program() { /// REMOVE THIS FUNCTION
@@ -232,8 +248,8 @@ void update_position() {  // Tracks and changes the robot's position based on od
 	rot = get_rot();
 	rot_radians = to_radians(rot);
 	overall_velocity = (truncate(top_right.get_actual_velocity()) + truncate(bottom_right.get_actual_velocity()) + truncate(top_left.get_actual_velocity()) + truncate(bottom_left.get_actual_velocity())) / 4;
-	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.155f) * cos(rot_radians));
-	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.155f) * sin(rot_radians));
+	y = y + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.17f) * cos(rot_radians));
+	x = x + (((((overall_velocity / 360) * 0.1f) * 12.56f) / 1.17f) * sin(rot_radians));
 	//           -         -        -            Change this ^^^^^^ as needed BECAUSE VEX ODOMETRY IS STUPID
 }
 
@@ -245,58 +261,60 @@ void auton_control(float targetx, float targety) {
 	x_diff = targetx - x;
 	y_diff = targety - y;
 //? Don't question the logic. Trust.
-	auton_x = abs(x_diff) > 0.3f;
-	auton_y = abs(y_diff) > 0.3f;
+	auton_x = abs(x_diff) > 0.5f;
+	auton_y = abs(y_diff) > 0.5f;
 	if (abs(rot_diff) <= 3) {
 		auton_rot = false;
 	} else if ((abs(x_diff) > 1.5f && abs(y_diff) > 1.5f)) {
 		auton_rot = true;
 	}
-
-// 	if (abs(y_diff) < 0.1 && abs(x_diff) < 0.2) {
-// 		auton_y = false;
-// 		auton_x = false;
-// 		if (abs(rot_diff) < 3) {
-// 			auton_rot = false;
-// 		} else if (abs(rot_diff) > 175 && y_diff < 0) {
-// //?			In case the robot overshoots its goal, I 
-// //?			want it to reverse, not turn all the way
-// //?			around and eventually get confused
-// 			auton_rot = false;
-// 			auton_y = true;
-// 		}
-// 	}
 }
 
 void move_to(float tarx, float tary) {
 	auton_control(tarx, tary);
 	clear_screen();
-	auton_x = abs(x_diff) > 0.2f;
-	auton_y = abs(y_diff) > 0.1f;
+	auton_x = abs(x_diff) > 1;
+	auton_y = abs(y_diff) > 1;
 	auton_rot = abs(rot_diff) > 3;
 	println(auton_x);
 	wait(1000);
 	// DONE: Get the robot to go to a target Y position.
-	// TODO: Get the robot to go to a target Y position and a target rotation.
-	// TODO: Get the robot to go to a target position and target rotation.
+	// DONE: Get the robot to go to a target Y position and a target rotation.
+	// DONE: Get the robot to go to a target position and target rotation.
+	// TODO: Make the movement smoother and faster, and add PID.
+	// TODO: If necessary, make scaling factor dynamic based on velocity.
 	while (auton_y || auton_x) {
+		//|   PID   |//
+		test_left = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
+		test_right = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
+		p_left = test_left;
+		p_right = test_right;
+		prev_i_left = i_left;
+		prev_i_right = i_right;
+		i_left = i_left + p_left;
+		i_right = i_right + p_right;
+		d_left = prev_i_left - i_left;
+		d_right = prev_i_right - i_right;
+		//|  Auton  |//
 		check_pause_program();
-		left_speed = (((y_diff * abs(cos(rot))) - (x_diff * abs(sin(rot)))) / ceil((rot_diff / 55))) - (rot_diff * auton_rot);
-		right_speed = (((y_diff * abs(cos(rot))) - (x_diff * abs(sin(rot)))) / ceil((rot_diff / 55))) + (rot_diff * auton_rot);
-		speed_control(15);
+		left_speed = p_left + (i_left * i_gain) + (d_left * d_gain);
+		right_speed = p_right + (i_right * i_gain) + (d_right * d_gain);
+		// speed_control(15);
+		left_speed = map_value(left_speed, -200.0f, 200.0f, -60.0f, 60.0f);
+		right_speed = map_value(right_speed, -200.0f, 200.0f, -60.0f, 60.0f);
 		println(x, 1);
-		println(x_diff, 2);
+		println(y, 2);
 		println(rot, 3);
-		println(rot_diff, 4);
-		println((x_diff * abs(sin(rot))), 5);
+		println(auton_rot, 5);
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
 	}
 	controller.rumble("-.");
+	wait(100);
 	brake_wheels();
-	println("DONE WITH AUTON", 4);
-	wait(20 * 1000);
+	println("DONE WITH AUTON", 1);
+	wait(1 * 1000);
 	clear_screen();
 }
 
@@ -377,10 +395,10 @@ void autonomous() {
 
 void opcontrol() {
 	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
-	exit(0);
 
 	/// INIT ///
 	println("OPCONTROL");
+	brake_wheels();
 	wait(1000);
 	clear_screen();
 	wait(10);
