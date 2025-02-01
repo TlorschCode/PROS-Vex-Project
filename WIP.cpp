@@ -40,18 +40,22 @@ bool finish_move = {true};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
-float test_left = {};
-float test_right = {};
+float dist_left = {};
+float dist_right = {};
 float prev_i_left = {};
 float prev_i_right = {};
+float prev_i_rot = {};
 float p_left = {};
 float p_right = {};
+float p_rot = {};
 float i_left = {};
 float i_right = {};
+float i_rot = {};
 float i_gain = {0.04};
 float d_left = {};
 float d_right = {};
-float d_gain = {0.02};
+float d_rot = {};
+float d_gain = {0.08};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -59,7 +63,7 @@ float rot = {};
 float raw_rot = {};
 float target_rot = {};
 float rot_diff = {};
-float xdiv = {};
+float x_div = {};
 float dist = {};
 float x, y = {};        // X and Y of robot
 float h, k = {};        // Center of circle
@@ -260,7 +264,7 @@ void auton_control(float targetx, float targety) {
 	dist = sqrt(abs(pow(targetx - x, 2) + pow(targety - y, 2)));
 	x_diff = targetx - x;
 	y_diff = targety - y;
-//? Don't question the logic. Trust.
+//? Don't question the logic, trust.
 	auton_x = abs(x_diff) > 0.5f;
 	auton_y = abs(y_diff) > 0.5f;
 	if (abs(rot_diff) <= 3) {
@@ -284,24 +288,28 @@ void move_to(float tarx, float tary) {
 	// TODO: Make the movement smoother and faster, and add PID.
 	// TODO: If necessary, make scaling factor dynamic based on velocity.
 	while (auton_y || auton_x) {
-		//|   PID   |//
-		test_left = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
-		test_right = (((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)))) / ceil((rot_diff / 180))) - (rot_diff * auton_rot);
-		p_left = test_left;
-		p_right = test_right;
-		prev_i_left = i_left;
-		prev_i_right = i_right;
+		//|    PID    |//
+		//| distance -
+		dist_left = (y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)));
+		dist_right = (y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)));
+		p_left = dist_left;
+		p_right = dist_right;
 		i_left = i_left + p_left;
 		i_right = i_right + p_right;
 		d_left = prev_i_left - i_left;
 		d_right = prev_i_right - i_right;
-		//|  Auton  |//
+		prev_i_left = i_left;
+		prev_i_right = i_right;
+		//| rotation - 
+		p_rot = rot_diff;
+		i_rot = i_rot + p_rot;
+		d_rot = prev_i_rot - i_rot;
+		prev_i_rot = i_rot;
+		//|   Auton   |//
 		check_pause_program();
-		left_speed = p_left + (i_left * i_gain) + (d_left * d_gain);
-		right_speed = p_right + (i_right * i_gain) + (d_right * d_gain);
+		left_speed = (p_left + (i_left * i_gain) + (d_left * d_gain)) + ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
+		right_speed = (p_right + (i_right * i_gain) + (d_right * d_gain)) + ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
 		// speed_control(15);
-		left_speed = map_value(left_speed, -200.0f, 200.0f, -60.0f, 60.0f);
-		right_speed = map_value(right_speed, -200.0f, 200.0f, -60.0f, 60.0f);
 		println(x, 1);
 		println(y, 2);
 		println(rot, 3);
