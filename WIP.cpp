@@ -51,11 +51,11 @@ float p_rot = {};
 float i_left = {};
 float i_right = {};
 float i_rot = {};
-float i_gain = {0.04};
+float i_gain = {0.1f};
 float d_left = {};
 float d_right = {};
 float d_rot = {};
-float d_gain = {0.08};
+float d_gain = {0.9f};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -290,14 +290,14 @@ void move_to(float tarx, float tary) {
 	while (auton_y || auton_x) {
 		//|    PID    |//
 		//| distance -
-		dist_left = (y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)));
-		dist_right = (y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians)));
+		dist_left = ((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians))) * 5);
+		dist_right = ((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians))) * 5);
 		p_left = dist_left;
 		p_right = dist_right;
 		i_left = i_left + p_left;
 		i_right = i_right + p_right;
-		d_left = prev_i_left - i_left;
-		d_right = prev_i_right - i_right;
+		d_left = 0;//prev_i_left - i_left;
+		d_right = 0;//prev_i_right - i_right;
 		prev_i_left = i_left;
 		prev_i_right = i_right;
 		//| rotation - 
@@ -307,8 +307,12 @@ void move_to(float tarx, float tary) {
 		prev_i_rot = i_rot;
 		//|   Auton   |//
 		check_pause_program();
-		left_speed = (p_left + (i_left * i_gain) + (d_left * d_gain)) + ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
-		right_speed = (p_right + (i_right * i_gain) + (d_right * d_gain)) + ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
+		left_speed = 0 - ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
+		right_speed = ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
+		// left_speed = (p_left + (i_left * i_gain) + (d_left * d_gain)) - (p_rot * auton_rot);
+		// right_speed = (p_right + (i_right * i_gain) + (d_left * d_gain)) + (p_rot * auton_rot);
+		// left_speed = (p_left + (i_left * i_gain) + (d_left * d_gain)) - ((p_rot + (i_rot * i_gain) - (d_rot * d_gain)) * auton_rot);
+		// right_speed = (p_right + (i_right * i_gain) + (d_right * d_gain)) - ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
 		// speed_control(15);
 		println(x, 1);
 		println(y, 2);
