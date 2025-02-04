@@ -291,8 +291,8 @@ void PID(float tarx, float tary) {
 	//| distance -
 	p_x = (targx - x) * p_gain;
 	p_y = (targy - y) * p_gain;
-	i_x = i_x + p_x;
-	i_y = i_y + p_y;
+	i_x = (i_x + p_x) * sin(rot_radians);
+	i_y = (i_y + p_y) * cos(rot_radians);
 	if (abs(original_x) - x < 12) {
 		d_mod_x = 1;
 	} else {
@@ -305,9 +305,9 @@ void PID(float tarx, float tary) {
 	}
 	d_x = (original_x - (x * d_gain)) * d_mod_x;
 	d_y = (original_y - (y * d_gain)) * d_mod_y;
-	PID_x = p_x + (i_x * i_gain) + (d_x * d_gain);
-	PID_y = p_y + (i_y * i_gain) + (d_y * d_gain);
-	PID_dist = ((PID_y * cos(rot_radians)) + (PID_x * sin(rot_radians))) / 2;
+	PID_x = p_x + (d_x * d_gain) * sin(rot_radians); // Cos and Sin used down here because they
+	PID_y = p_y + (d_y * d_gain) * cos(rot_radians); // were already used for i
+	PID_dist = ((PID_y + (i_y * i_gain)) + (PID_x + (i_x * i_gain))) / 2;
 	//| rotation - 
 	p_rot = rot_diff * p_rot_gain;
 	i_rot = i_rot + p_rot;
@@ -315,7 +315,7 @@ void PID(float tarx, float tary) {
 	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
 }
 
-void move_to(float tarx, float tary) {
+void move_to(float tarx, float tary, bool pursuit = false) {
 	auton_control(tarx, tary);
 	clear_screen();
 	auton_x = abs(x_diff) > 1;
@@ -422,7 +422,7 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(0, 24);
+	move_to(12, 12);
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
