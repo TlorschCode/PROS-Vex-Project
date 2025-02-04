@@ -55,7 +55,7 @@ float i_gain = {0.1f};
 float d_left = {};
 float d_right = {};
 float d_rot = {};
-float d_gain = {0.9f};
+float d_gain = {0.08f};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -65,9 +65,8 @@ float target_rot = {};
 float rot_diff = {};
 float x_div = {};
 float dist = {};
-float x, y = {};        // X and Y of robot
-float h, k = {};        // Center of circle
-float r = {5.0f};       // Circle's radiusy
+float x, y = {};        // X and Y of robot (h, k correspond to x, y in equation to find intercept)
+float r = {5.0f};       // Circle's radius
 float m = {1.0f};       // Slope of line between two points
 float a, b, c = {};     // A, B, and C for quadratic equation
 float y_intercept = {1.0f};
@@ -82,11 +81,11 @@ vector <float> points_y {12.0f, 24.0f};
 const double PI = 3.14159265358979323846;
 
 // A = 1 + m**2
-// B = 2 * (m * (y_intercept - k) - h)
-// C = (h**2 + (y_intercept - k)**2 - r**2)
-// discriminant = B**2 - 4*A*C
+// B = 2 * (m * (y_intercept - y) - x)
+// C = (x**2 + (y_intercept - y)**2 - r**2)
+// discriminant = B**2 - 4*A*C   (from quadratic equation)
 
-//// * * * NON-DEFAULT FUNCTIONS * * * ////
+////| NON-DEFAULT FUNCTIONS |////
 double to_radians(float degrees) {
 	return degrees * (PI / 180);
 }
@@ -301,10 +300,10 @@ void move_to(float tarx, float tary) {
 		prev_i_left = i_left;
 		prev_i_right = i_right;
 		//| rotation - 
-		p_rot = rot_diff;
+		p_rot = rot_diff / 5;
 		i_rot = i_rot + p_rot;
-		d_rot = prev_i_rot - i_rot;
-		prev_i_rot = i_rot;
+		d_rot = rot - target_rot;
+		// prev_i_rot = i_rot;
 		//|   Auton   |//
 		check_pause_program();
 		left_speed = 0 - ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
@@ -318,6 +317,8 @@ void move_to(float tarx, float tary) {
 		println(y, 2);
 		println(rot, 3);
 		println(auton_rot, 5);
+		cout << "\033[A\033[2K\r";
+		cout << d_rot;
 		move_motors(left_speed, right_speed);
 		auton_control(tarx, tary);
 		wait(10);
@@ -330,7 +331,7 @@ void move_to(float tarx, float tary) {
 	clear_screen();
 }
 
-//// * * * DEFAULT FUNCTIONS * * * ////
+////| DEFAULT FUNCTIONS |////
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
