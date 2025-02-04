@@ -40,24 +40,28 @@ bool finish_move = {true};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
-float dist_left = {};
-float dist_right = {};
+float PID_dist = {};
 float prev_i_left = {};
 float prev_i_right = {};
 float prev_i_rot = {};
-float p_left = {};
-float p_right = {};
-float p_rot = {};
-float i_left = {};
-float i_right = {};
-float i_rot = {};
-float i_gain = {0.0f}; // TODO: Change this
-float i_rot_gain = {0.1f};
-float d_left = {};
-float d_right = {};
-float d_rot = {};
-float d_gain = {0.0f}; // TODO: Change this
+float p_gain = {6.0f};
+float i_gain = {0.05f};
+float d_gain = {4.2f};
+float d_mod_x = {};
+float d_mod_y = {};
+float i_rot_gain = {0.05f};
 float d_rot_gain = {0.85f};
+float p_x = {};
+float p_y = {};
+float p_rot = {};
+float i_x = {};
+float i_y = {};
+float i_rot = {};
+float d_x = {};
+float d_y = {};
+float PID_x = {};
+float PID_y = {};
+float d_rot = {};
 float left_speed, right_speed = {};
 float max_speed = {85.0f};
 float start_rot = {};
@@ -65,9 +69,12 @@ float rot = {};
 float raw_rot = {};
 float target_rot = {};
 float original_rot = {};
+float p_rot_gain = {0.2f};
+float PID_rot = {};
 float rot_diff = {};
 float x_div = {};
 float dist = {};
+float original_x, original_y = {};
 float x, y = {};        // X and Y of robot (h, k correspond to x, y in equation to find intercept)
 float r = {5.0f};       // Circle's radius
 float m = {1.0f};       // Slope of line between two points
@@ -268,32 +275,49 @@ void auton_control(float targetx, float targety) {
 	x_diff = targetx - x;
 	y_diff = targety - y;
 //? Don't question the logic, trust.
-	auton_x = abs(x_diff) > 0.5f;
-	auton_y = abs(y_diff) > 0.5f;
-	if (abs(rot_diff) <= 3) {
+	auton_x = abs(x_diff) > 1.3f;
+	auton_y = abs(y_diff) > 1.3f;
+	if (abs(rot_diff) <= 3 && abs(x_diff) > 1.5f && abs(y_diff) > 1.5f) {
+		if (auton_rot = true) {
+			controller.rumble(".");
+		}
 		auton_rot = false;
 	} else if ((abs(x_diff) > 1.5f && abs(y_diff) > 1.5f)) {
 		auton_rot = true;
 	}
 }
 
-void PID() {
+void PID(float tarx, float tary) {
+	float targx = tarx + 1;
+	float targy = tary + 1;
 	//|    PID    |//
 	//| distance -
-	dist_left = ((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians))) * 5);
-	dist_right = ((y_diff * abs(cos(rot_radians))) + (x_diff * abs(sin(rot_radians))) * 5);
-	p_left = dist_left;
-	p_right = dist_right;
-	i_left = i_left + p_left;
-	i_right = i_right + p_right;
-	d_left = 0;//prev_i_left - i_left;
-	d_right = 0;//prev_i_right - i_right;
-	prev_i_left = i_left;
-	prev_i_right = i_right;
+	p_x = (targx - x) * p_gain;
+	p_y = (targy - y) * p_gain;
+	i_x = i_x + p_x;
+	i_y = i_y + p_y;
+	if (abs(original_x) - x < 12) {
+		d_mod_x = 1;
+	} else {
+		d_mod_x = 12 / abs(original_x - x);
+	}
+	if (abs(original_y) - x < 12) {
+		d_mod_y = 1;
+	} else {
+		d_mod_y = 12 / abs(original_y - y);
+	}
+	d_x = (original_x - (x * d_gain)) * d_mod_x;
+	d_y = (original_y - (y * d_gain)) * d_mod_y;
+	prev_i_left = i_x;
+	prev_i_right = i_y;
+	PID_x = p_x + (i_x * i_gain) + (d_x * d_gain);
+	PID_y = p_y + (i_y * i_gain) + (d_y * d_gain);
+	PID_dist = ((PID_y * cos(rot_radians)) + (PID_x * sin(rot_radians))) / 2;
 	//| rotation - 
-	p_rot = rot_diff / 5;
+	p_rot = rot_diff * p_rot_gain;
 	i_rot = i_rot + p_rot;
 	d_rot = original_rot - rot;
+	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
 	// prev_i_rot = i_rot;
 }
 
@@ -304,6 +328,8 @@ void move_to(float tarx, float tary) {
 	auton_y = abs(y_diff) > 1;
 	auton_rot = abs(rot_diff) > 3;
 	original_rot = rot;
+	original_x = x;
+	original_y = y;
 	println(auton_x);
 	wait(1000);
 	// DONE: Get the robot to go to a target Y position.
@@ -311,18 +337,17 @@ void move_to(float tarx, float tary) {
 	// DONE: Get the robot to go to a target position and target rotation.
 	// DONE: Turning PID
 	// TODO: Movement PID
-	// TODO: If necessary, make scaling factor dynamic based on velocity. I will go crazy if this is necessary. Crazy? I was crazy once. They locked me in a rubber room. A room full of rats. In that room I went crazy. Crazy? I was crazy once.
+	// TODO: Add Pure Pursuit
+	// TODO: Make Pure Pursuit function with PID
+	// TODO: Make the robot be able to cycle between Pure Pursuit points and target points.
 	while (auton_y || auton_x) {
-		PID(); //| This function cost me time, pain, tears, and lastly, my sanity. Enjoy.
+		PID(tarx, tary); //| This function cost me time, pain, tears, and lastly, my sanity. Enjoy.
 		//|   Auton   |//
 		check_pause_program();
-		left_speed = 0 - ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
-		right_speed = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
-		// left_speed = (p_left + (i_left * i_gain) + (d_left * d_gain)) - (p_rot * auton_rot);
-		// right_speed = (p_right + (i_right * i_gain) + (d_left * d_gain)) + (p_rot * auton_rot);
-		// left_speed = (p_left + (i_left * i_gain) + (d_left * d_gain)) - ((p_rot + (i_rot * i_gain) - (d_rot * d_gain)) * auton_rot);
-		// right_speed = (p_right + (i_right * i_gain) + (d_right * d_gain)) - ((p_rot + (i_rot * i_gain) + (d_rot * d_gain)) * auton_rot);
-		// speed_control(15);
+		// left_speed = 0 - ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
+		// right_speed = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
+		left_speed = PID_dist - PID_rot;
+		right_speed = PID_dist + PID_rot;
 		println(x, 1);
 		println(y, 2);
 		println(rot, 3);
@@ -403,7 +428,7 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(12, 0);
+	move_to(0, 24);
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
