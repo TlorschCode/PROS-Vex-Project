@@ -41,9 +41,6 @@ int left_analog = {};
 int up_analog = {};
 int reversed = {1};
 float PID_dist = {};
-float prev_i_left = {};
-float prev_i_right = {};
-float prev_i_rot = {};
 float p_gain = {6.0f};
 float i_gain = {0.05f};
 float d_gain = {4.2f};
@@ -308,8 +305,6 @@ void PID(float tarx, float tary) {
 	}
 	d_x = (original_x - (x * d_gain)) * d_mod_x;
 	d_y = (original_y - (y * d_gain)) * d_mod_y;
-	prev_i_left = i_x;
-	prev_i_right = i_y;
 	PID_x = p_x + (i_x * i_gain) + (d_x * d_gain);
 	PID_y = p_y + (i_y * i_gain) + (d_y * d_gain);
 	PID_dist = ((PID_y * cos(rot_radians)) + (PID_x * sin(rot_radians))) / 2;
@@ -318,7 +313,6 @@ void PID(float tarx, float tary) {
 	i_rot = i_rot + p_rot;
 	d_rot = original_rot - rot;
 	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
-	// prev_i_rot = i_rot;
 }
 
 void move_to(float tarx, float tary) {
