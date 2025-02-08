@@ -359,7 +359,7 @@ void PID(float tarx, float tary) {
 	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
 }
 
-void move_to(float tarx, float tary, float nextx, float nexty, bool pid) {
+void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, bool pid = 1) {
 	auton_control(tarx, tary);
 	clear_screen();
 	auton_x = abs(x_diff) > 1;
@@ -374,7 +374,7 @@ void move_to(float tarx, float tary, float nextx, float nexty, bool pid) {
 	// DONE: Turning PID
 	// DONE: Movement PID
 	// TODO: Add Pure Pursuit
-	// TODO: Make Pure Pursuit function with PID
+	// TODO: Make Pure Pursuit work with PID
 	// TODO: Make the robot be able to cycle between Pure Pursuit points and target points.
 	if (pid) {
 		while (auton_y || auton_x) {
@@ -395,8 +395,8 @@ void move_to(float tarx, float tary, float nextx, float nexty, bool pid) {
 		while (dist > lookahead) {
 			//|   Pure Pursuit   |//
 			check_pause_program();
-			x_diff2 = nextx - x;
-			y_diff2 = nexty - y;
+			x_diff2 = x - prevx;
+			y_diff2 = y - prevy;
 			dx = x_diff2 - x_diff;
 			dy = y_diff2 - y_diff;
 			dr = sqrt(pow(dx, 2) + pow(dy, 2));
@@ -426,8 +426,7 @@ void move_to(float tarx, float tary, float nextx, float nexty, bool pid) {
 						PID(x_intercept1, y_intercept1);
 						println(x_intercept1, 1);
 						println(y_intercept1, 2);
-						println(rot, 3);
-						println("Intercept 1", 4);
+						println(p_x);
 					}
 				}
 			}
@@ -436,7 +435,7 @@ void move_to(float tarx, float tary, float nextx, float nexty, bool pid) {
 			right_speed = PID_dist + PID_rot;
 			
 			println(auton_rot, 5);
-			// move_motors(left_speed, right_speed);
+			move_motors(left_speed, right_speed);
 			auton_control(tarx, tary);
 			wait(10);
 		}
@@ -511,11 +510,12 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	for (size_t i = 0; i < points_x.size(); i++) {
-		move_to(points_x[i], points_y[i], points_x[i + 1], points_y[i + 1], points_mode[i]);
-		controller.rumble(".");
-		wait(1000);
-	}
+	move_to(12, 12, 0, 0, 0);
+	// for (size_t i = 0; i < points_x.size(); i++) {
+	// 	move_to(points_x[i], points_y[i], points_x[i + 1], points_y[i + 1], points_mode[i]);
+	// 	controller.rumble(".");
+	// 	wait(1000);
+	// }
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
