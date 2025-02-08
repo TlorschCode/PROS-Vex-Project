@@ -40,6 +40,7 @@ bool finish_move = {true};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
+int plusminus = {1};
 float PID_dist = {};
 float p_gain = {6.0f};
 float i_gain = {0.05f};
@@ -73,17 +74,31 @@ float x_div = {};
 float dist = {};
 float original_x, original_y = {};
 float x, y = {};        // X and Y of robot (h, k correspond to x, y in equation to find intercept)
-float r = {5.0f};       // Circle's radius
-float m = {1.0f};       // Slope of line between two points
-float a, b, c = {};     // A, B, and C for quadratic equation
-float y_intercept = {1.0f};
+float r = {6.0f};       // Circle's radius
 float overall_velocity = {};
 float rot_radians = {};
 float x_diff, y_diff {};
 float conveyor_speed = {440};
+float lookahead = {2};
+double discriminate = {};
+float x_diff2 = {};
+float y_diff2 = {};
+float x_intercept1 = {};
+float x_intercept2 = {};
+float y_intercept1 = {};
+float y_intercept2 = {};
+float minX = {};
+float maxX = {};
+float minY = {};
+float maxY = {};
+float dx = {};
+float dy = {};
+float dr = {};
+float D = {};
 // points for auton
-vector <float> points_x {12.0f, 12.0f};
-vector <float> points_y {12.0f, 24.0f};
+vector <float> points_x {0.0f, 0.0f, 12.0f, 24.0f};
+vector <float> points_y {0.0f, 12.0f, 24.0f, 12.0f};
+vector <bool> points_mode {0, 0, 0, 1}; // 0 is Pure Pursuit, 1 is PID
 // constants
 const double PI = 3.14159265358979323846;
 
@@ -93,6 +108,26 @@ const double PI = 3.14159265358979323846;
 // discriminant = B**2 - 4*A*C   (from quadratic equation)
 
 ////| NON-DEFAULT FUNCTIONS |////
+double min(double input1, double input2) {
+	if (input1 < input2) {
+		return input1;
+	} else if (input2 < input2) {
+		return input2;
+	} else {
+		return 0;
+	}
+}
+
+double max(double input1, double input2) {
+	if (input1 > input2) {
+		return input1;
+	} else if (input2 > input2) {
+		return input2;
+	} else {
+		return 0;
+	}
+}
+
 double to_radians(float degrees) {
 	return degrees * (PI / 180);
 }
@@ -145,6 +180,14 @@ void println(const T& input, int row = 1) {
         printtext = ss.str();
     }
     pros::lcd::set_text(row, printtext);
+}
+
+int sign(float input) {
+	if (input >= 0) {
+		return 1;
+	} else {
+		return -1;
+	}
 }
 
 double map_value(float input, float input_start, float input_end, float output_start, double output_end) {
@@ -284,6 +327,7 @@ void auton_control(float targetx, float targety) {
 	}
 }
 
+//| This function cost me time, pain, tears, and lastly, my sanity. Enjoy.
 void PID(float tarx, float tary) {
 	float targx = tarx + 1;
 	float targy = tary + 1;
@@ -315,7 +359,7 @@ void PID(float tarx, float tary) {
 	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
 }
 
-void move_to(float tarx, float tary, bool pursuit = false) {
+void move_to(float tarx, float tary, float nextx, float nexty, bool pid) {
 	auton_control(tarx, tary);
 	clear_screen();
 	auton_x = abs(x_diff) > 1;
@@ -326,31 +370,76 @@ void move_to(float tarx, float tary, bool pursuit = false) {
 	original_y = y;
 	println(auton_x);
 	wait(1000);
-	// DONE: Get the robot to go to a target Y position.
-	// DONE: Get the robot to go to a target Y position and a target rotation.
 	// DONE: Get the robot to go to a target position and target rotation.
 	// DONE: Turning PID
-	// TODO: Movement PID
+	// DONE: Movement PID
 	// TODO: Add Pure Pursuit
 	// TODO: Make Pure Pursuit function with PID
 	// TODO: Make the robot be able to cycle between Pure Pursuit points and target points.
-	while (auton_y || auton_x) {
-		PID(tarx, tary); //| This function cost me time, pain, tears, and lastly, my sanity. Enjoy.
-		//|   Auton   |//
-		check_pause_program();
-		// left_speed = 0 - ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
-		// right_speed = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
-		left_speed = PID_dist - PID_rot;
-		right_speed = PID_dist + PID_rot;
-		println(x, 1);
-		println(y, 2);
-		println(rot, 3);
-		println(auton_rot, 5);
-		cout << "\033[A\033[2K\r";
-		cout << d_rot;
-		move_motors(left_speed, right_speed);
-		auton_control(tarx, tary);
-		wait(10);
+	if (pid) {
+		while (auton_y || auton_x) {
+			//|   PID   |//
+			check_pause_program();
+			PID(tarx, tary);
+			left_speed = PID_dist - PID_rot;
+			right_speed = PID_dist + PID_rot;
+			println(x, 1);
+			println(y, 2);
+			println(rot, 3);
+			println(auton_rot, 5);
+			move_motors(left_speed, right_speed);
+			auton_control(tarx, tary);
+			wait(10);
+		}
+	} else {
+		while (dist > lookahead) {
+			//|   Pure Pursuit   |//
+			check_pause_program();
+			x_diff2 = nextx - x;
+			y_diff2 = nexty - y;
+			dx = x_diff2 - x_diff;
+			dy = y_diff2 - y_diff;
+			dr = sqrt(pow(dx, 2) + pow(dy, 2));
+			D = x_diff * y_diff2 - x_diff2 * y_diff;
+			discriminate = pow(r, 2) * pow(dr, 2) - pow(D, 2);
+			x_intercept1 = (D * dy + sign(dy) * dx * sqrt(discriminate)) / pow(dr, 2);
+			x_intercept2 = (D * dy - sign(dy) * dx * sqrt(discriminate)) / pow(dr, 2);
+			y_intercept1 = (-D * dx + abs(dy) * sqrt(discriminate)) / pow(dr, 2);
+			y_intercept2 = (-D * dx - abs(dy) * sqrt(discriminate)) / pow(dr, 2);
+			x_intercept1 = x_intercept1 + x;
+			x_intercept2 = x_intercept2 + x;
+			y_intercept1 = y_intercept1 + y;
+			y_intercept2 = y_intercept2 + y;
+			minX = min(x_intercept1, x_intercept2);
+			maxX = max(x_intercept1, x_intercept2);
+			minY = min(y_intercept1, y_intercept2);
+			maxY = max(y_intercept1, y_intercept2);
+			if (discriminate >= 0) {
+				if ((minX <= x_intercept1 <= maxX && minY <= y_intercept1 <= maxY) || (minX <= x_intercept2 <= maxX && minY <= y_intercept2 <= maxX)) {
+					if (abs(x_intercept2 - tarx) + abs(y_intercept2 - tary) < abs(x_intercept1 - tarx) + abs(y_intercept1 - tary)) {
+						PID(x_intercept2, y_intercept2);
+						println(x_intercept2, 1);
+						println(y_intercept2, 2);
+						println(rot, 3);
+						println("Intercept 2", 4);
+					} else {
+						PID(x_intercept1, y_intercept1);
+						println(x_intercept1, 1);
+						println(y_intercept1, 2);
+						println(rot, 3);
+						println("Intercept 1", 4);
+					}
+				}
+			}
+			// discriminant = pow(b, 2) - 4*A*C   //(from quadratic equation);
+			left_speed = PID_dist - PID_rot;
+			right_speed = PID_dist + PID_rot;
+			
+			println(auton_rot, 5);
+			// move_motors(left_speed, right_speed);
+			auton_control(tarx, tary);
+			wait(10);
+		}
 	}
 	controller.rumble("-.");
 	wait(100);
@@ -422,7 +511,11 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(12, 12);
+	for (size_t i = 0; i < points_x.size(); i++) {
+		move_to(points_x[i], points_y[i], points_x[i + 1], points_y[i + 1], points_mode[i]);
+		controller.rumble(".");
+		wait(1000);
+	}
 	
 	/// a = 1 + pow(m, 2);
 	/// b = 2 * (m * (y_intercept - k) - h);
