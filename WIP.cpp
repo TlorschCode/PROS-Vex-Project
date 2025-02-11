@@ -37,10 +37,10 @@ bool auton_y = {true};
 bool auton_x = {true};
 bool auton_rot = {true};
 bool finish_move = {true};
+bool within_x, within_y = {0};
 int left_analog = {};
 int up_analog = {};
 int reversed = {1};
-int plusminus = {1};
 float PID_dist = {};
 float p_gain = {6.0f};
 float i_gain = {0.05f};
@@ -80,24 +80,20 @@ float rot_radians = {};
 float x_diff, y_diff {};
 float conveyor_speed = {440};
 float lookahead = {2};
-double discriminate = {};
-float x_diff2 = {};
-float y_diff2 = {};
-float x_intercept1 = {};
-float x_intercept2 = {};
-float y_intercept1 = {};
-float y_intercept2 = {};
 float minX = {};
 float maxX = {};
 float minY = {};
 float maxY = {};
-float dx = {};
-float dy = {};
-float dr = {};
-float D = {};
+double discriminate = {};
+double a, b, c = {};
+double t1, t2 = {};
+double x_intercept1, x_intercept2 = {};
+double y_intercept1, y_intercept2 = {};
+float x1, x2 = {};
+double y1, y2 = {}; 
 // points for auton
-vector <float> points_x {0.0f, 0.0f, 12.0f, 24.0f};
-vector <float> points_y {0.0f, 12.0f, 24.0f, 12.0f};
+vector <double> points_x {0.0f, 0.0f, 12.0f, 24.0f};
+vector <double> points_y {0.0f, 12.0f, 24.0f, 12.0f};
 vector <bool> points_mode {0, 0, 0, 1}; // 0 is Pure Pursuit, 1 is PID
 // constants
 const double PI = 3.14159265358979323846;
@@ -359,8 +355,12 @@ void PID(float tarx, float tary) {
 	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
 }
 
-void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, bool pid = 1) {
+void move_to(double tarx, double tary, double prevx = 0.0f, double prevy = 0.0f, bool pid = 1) {
 	auton_control(tarx, tary);
+	x1 = prevx;
+	x2 = tarx;
+	y1 = prevy;
+	y2 = tary;
 	clear_screen();
 	auton_x = abs(x_diff) > 1;
 	auton_y = abs(y_diff) > 1;
@@ -395,27 +395,22 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 		while (dist > lookahead) {
 			//|   Pure Pursuit   |//
 			check_pause_program();
-			x_diff2 = x - prevx;
-			y_diff2 = y - prevy;
-			dx = x_diff2 - x_diff;
-			dy = y_diff2 - y_diff;
-			dr = sqrt(pow(dx, 2) + pow(dy, 2));
-			D = x_diff * y_diff2 - x_diff2 * y_diff;
-			discriminate = pow(r, 2) * pow(dr, 2) - pow(D, 2);
-			x_intercept1 = (D * dy + sign(dy) * dx * sqrt(discriminate)) / pow(dr, 2);
-			x_intercept2 = (D * dy - sign(dy) * dx * sqrt(discriminate)) / pow(dr, 2);
-			y_intercept1 = (-D * dx + abs(dy) * sqrt(discriminate)) / pow(dr, 2);
-			y_intercept2 = (-D * dx - abs(dy) * sqrt(discriminate)) / pow(dr, 2);
-			x_intercept1 = x_intercept1 + x;
-			x_intercept2 = x_intercept2 + x;
-			y_intercept1 = y_intercept1 + y;
-			y_intercept2 = y_intercept2 + y;
-			minX = min(x_intercept1, x_intercept2);
-			maxX = max(x_intercept1, x_intercept2);
-			minY = min(y_intercept1, y_intercept2);
-			maxY = max(y_intercept1, y_intercept2);
+			//| MaTHsuCKs
+			a = pow(x2 - x1, 2) + pow(y2 - y1, 2);
+			b = 2 * ((x1 - x) * (x2 - x1) + (y1 - y) * (y2 - y1));
+			c = (pow(x1 - x, 2) + pow(y1 - y, 2)) - pow(r, 2);
+			discriminate = pow(b, 2) - (4 * a * c);
+			t1 = (-b + sqrt(discriminate)) / (2 * a);
+			t2 = (-b - sqrt(discriminate)) / (2 * a);
+			x_intercept1 = x1 + (x2 = x1) * t1;
+			x_intercept1 = x1 + (x2 = x1) * t2;
+			x_intercept1 = y1 + (y2 = y1) * t1;
+			x_intercept1 = y1 + (y2 = y1) * t2;
+			within_x = (minX <= x_intercept1 && x_intercept1 <= maxX) || (minX <= x_intercept2 && x_intercept2 <= maxX);
+			within_y = (minY <= y_intercept1 && y_intercept1 <= maxY) || (minY <= y_intercept2 && y_intercept2 <= maxY);
+			//| lahjick :/
 			if (discriminate >= 0) {
-				if ((minX <= x_intercept1 <= maxX && minY <= y_intercept1 <= maxY) || (minX <= x_intercept2 <= maxX && minY <= y_intercept2 <= maxX)) {
+				if (within_x && within_y) {
 					if (abs(x_intercept2 - tarx) + abs(y_intercept2 - tary) < abs(x_intercept1 - tarx) + abs(y_intercept1 - tary)) {
 						PID(x_intercept2, y_intercept2);
 						println(x_intercept2, 1);
