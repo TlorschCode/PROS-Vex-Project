@@ -30,3 +30,22 @@
 *.exe
 *.out
 *.app
+
+# Additional Compiled Object files
+*.bin
+*.elf
+
+# PROS
+bin/
+.vscode/
+.cache/
+firmware/
+include/
+common.mk
+compile_commands.json
+temp.log
+temp.errors
+Makefile
+project.pros
+*.ini
+.d/

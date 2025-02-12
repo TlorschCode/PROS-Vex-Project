@@ -1,0 +1,10 @@
+Wheel diameter is 12.56
+Use radians for Cmath cos and sin
+
+Slow motors' velocities are +-100
+Normal motors' velocities are +-200
+Fast motors' velocities are +-600
+
+Right side motors move forward with a positive velocity input
+
+!! - 1.155 is the perfect amount for line 240 !!
