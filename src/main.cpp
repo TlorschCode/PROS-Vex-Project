@@ -80,6 +80,8 @@ float rot_radians = {};
 float x_diff, y_diff {};
 float conveyor_speed = {440};
 float lookahead = {2};
+float x1, x2 = {};
+float y1, y2 = {}; 
 float minX = {};
 float maxX = {};
 float minY = {};
@@ -89,11 +91,9 @@ double a, b, c = {};
 double t1, t2 = {};
 double x_intercept1, x_intercept2 = {};
 double y_intercept1, y_intercept2 = {};
-float x1, x2 = {};
-double y1, y2 = {}; 
 // points for auton
-vector <double> points_x {0.0f, 0.0f, 12.0f, 24.0f};
-vector <double> points_y {0.0f, 12.0f, 24.0f, 12.0f};
+vector <float> points_x {0.0f, 0.0f, 12.0f, 24.0f};
+vector <float> points_y {0.0f, 12.0f, 24.0f, 12.0f};
 vector <bool> points_mode {0, 0, 0, 1}; // 0 is Pure Pursuit, 1 is PID
 // constants
 const double PI = 3.14159265358979323846;
@@ -355,7 +355,7 @@ void PID(float tarx, float tary) {
 	PID_rot = ((p_rot + (i_rot * i_rot_gain) + (d_rot * d_rot_gain)) * auton_rot);
 }
 
-void move_to(double tarx, double tary, double prevx = 0.0f, double prevy = 0.0f, bool pid = 1) {
+void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, bool pid = 1) {
 	auton_control(tarx, tary);
 	x1 = prevx;
 	x2 = tarx;
