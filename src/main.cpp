@@ -402,6 +402,9 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			b = b * 2;
 			c = pow(pointX1 - x, 2) + pow(pointY1 - y, 2);
 			c -= pow(r, 2);
+			println(a);
+			println(b);
+			println(c);
 			// b = 2 * ((pointX1 - x) * (pointX2 - pointX1) + (pointY1 - y) * (pointY2 - pointY1));
 			// c = (pow(pointX1 - x, 2) + pow(pointY1 - y, 2)) - pow(r, 2);
 			discriminate = pow(b, 2) - (4 * a * c);
