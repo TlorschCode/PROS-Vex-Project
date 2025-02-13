@@ -409,7 +409,6 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			within_x = (minX <= x_intercept1 && x_intercept1 <= maxX) || (minX <= x_intercept2 && x_intercept2 <= maxX);
 			within_y = (minY <= y_intercept1 && y_intercept1 <= maxY) || (minY <= y_intercept2 && y_intercept2 <= maxY);
 			//| lahjick :/
-			// ohio skibidi rizz bruv lol gyat of amogus fire in my face
 			if (discriminate >= 0) {
 				if (within_x && within_y) {
 					if (abs(x_intercept2 - tarx) + abs(y_intercept2 - tary) < abs(x_intercept1 - tarx) + abs(y_intercept1 - tary)) {
