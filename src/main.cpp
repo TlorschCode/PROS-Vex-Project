@@ -396,17 +396,24 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			//|   Pure Pursuit   |//
 			check_pause_program();
 			//| MaTHsuCKs
-			a = pow(pointX2 - pointX1, 2) + pow(pointY2 - pointY1, 2);
-			b = (pointX1 - x) * (pointX2 - pointX1);
-			b += (pointY1 - y) * (pointY2 - pointY1);
+			// tarx = pointX2
+			// prevx = pointX1
+			// tary = pointY2
+			// prevy = pointY1
+			a = pow(tarx - prevx, 2) + pow(tary - prevy, 2);
+			b = ((prevx - x) * (tarx - prevx)) + ((prevy - y) * (tary - prevy));
 			b = b * 2;
-			c = pow(pointX1 - x, 2) + pow(pointY1 - y, 2);
-			c -= pow(r, 2);
-			println(a);
-			println(b);
-			println(c);
+			c = (pow(prevx - x, 2) + pow(prevy - y, 2)) - pow(r, 2);
+			// println(a);
+			// println(b, 2);
+			// println(c, 3);
+			println(x);
+			println(y, 2);
 			// b = 2 * ((pointX1 - x) * (pointX2 - pointX1) + (pointY1 - y) * (pointY2 - pointY1));
 			// c = (pow(pointX1 - x, 2) + pow(pointY1 - y, 2)) - pow(r, 2);
+			// 288
+			// 0
+			// -36
 			discriminate = pow(b, 2) - (4 * a * c);
 			t1 = (-b + sqrt(discriminate)) / (2 * a);
 			t2 = (-b - sqrt(discriminate)) / (2 * a); 
@@ -435,12 +442,12 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			// 	}
 			// }
 			// discriminant = pow(b, 2) - 4*A*C   //(from quadratic equation);
-			left_speed = PID_dist - PID_rot;
-			right_speed = PID_dist + PID_rot;
-			println(x_intercept1);
-			println(x_intercept2, 2);
-			println(y_intercept1, 3);
-			println(y_intercept2, 4);
+			// left_speed = PID_dist - PID_rot;
+			// right_speed = PID_dist + PID_rot;
+			// println(x_intercept1);
+			// println(x_intercept2, 2);
+			// println(y_intercept1, 3);
+			// println(y_intercept2, 4);
 			
 			// println(auton_rot, 5);
 			// move_motors(left_speed, right_speed);
@@ -448,6 +455,7 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			wait(10);
 		}
 	}
+	println("DONE", 4);
 	controller.rumble("-.");
 	wait(100);
 	brake_wheels();
