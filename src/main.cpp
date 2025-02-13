@@ -80,8 +80,8 @@ float rot_radians = {};
 float x_diff, y_diff {};
 float conveyor_speed = {440};
 float lookahead = {2};
-float x1, x2 = {};
-float y1, y2 = {}; 
+float pointX1, pointX2 = {};
+float pointY1, pointY2 = {}; 
 float minX = {};
 float maxX = {};
 float minY = {};
@@ -357,10 +357,10 @@ void PID(float tarx, float tary) {
 
 void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, bool pid = 1) {
 	auton_control(tarx, tary);
-	x1 = prevx;
-	x2 = tarx;
-	y1 = prevy;
-	y2 = tary;
+	pointX1 = prevx;
+	pointX2 = tarx;
+	pointY1 = prevy;
+	pointY2 = tary;
 	clear_screen();
 	auton_x = abs(x_diff) > 1;
 	auton_y = abs(y_diff) > 1;
@@ -396,16 +396,16 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			//|   Pure Pursuit   |//
 			check_pause_program();
 			//| MaTHsuCKs
-			a = pow(x2 - x1, 2) + pow(y2 - y1, 2);
-			b = 2 * ((x1 - x) * (x2 - x1) + (y1 - y) * (y2 - y1));
-			c = (pow(x1 - x, 2) + pow(y1 - y, 2)) - pow(r, 2);
+			a = pow(pointX2 - pointX1, 2) + pow(pointY2 - pointY1, 2);
+			b = 2 * ((pointX1 - x) * (pointX2 - pointX1) + (pointY1 - y) * (pointY2 - pointY1));
+			c = (pow(pointX1 - x, 2) + pow(pointY1 - y, 2)) - pow(r, 2);
 			discriminate = pow(b, 2) - (4 * a * c);
 			t1 = (-b + sqrt(discriminate)) / (2 * a);
-			t2 = (-b - sqrt(discriminate)) / (2 * a);
-			x_intercept1 = x1 + (x2 = x1) * t1;
-			x_intercept1 = x1 + (x2 = x1) * t2;
-			x_intercept1 = y1 + (y2 = y1) * t1;
-			x_intercept1 = y1 + (y2 = y1) * t2;
+			t2 = (-b - sqrt(discriminate)) / (2 * a); 
+			x_intercept1 = pointX1 + (pointX2 = pointX1) * t1;
+			x_intercept1 = pointX1 + (pointX2 = pointX1) * t2;
+			x_intercept1 = pointY1 + (pointY2 = pointY1) * t1;
+			x_intercept1 = pointY1 + (pointY2 = pointY1) * t2;
 			within_x = (minX <= x_intercept1 && x_intercept1 <= maxX) || (minX <= x_intercept2 && x_intercept2 <= maxX);
 			within_y = (minY <= y_intercept1 && y_intercept1 <= maxY) || (minY <= y_intercept2 && y_intercept2 <= maxY);
 			//| lahjick :/
