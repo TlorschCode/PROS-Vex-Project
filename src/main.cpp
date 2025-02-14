@@ -86,6 +86,8 @@ float minX = {};
 float maxX = {};
 float minY = {};
 float maxY = {};
+float analogY = {};
+float analogX = {};
 double discriminate = {};
 double a, b, c = {};
 double t1, t2 = {};
@@ -429,7 +431,6 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 					}
 				}
 			}
-			// discriminant = pow(b, 2) - 4*A*C   (from quadratic equation);
 			left_speed = PID_dist - PID_rot;
 			right_speed = PID_dist + PID_rot;
 			println(x_intercept1);
@@ -513,7 +514,7 @@ void autonomous() {
 	/// SETUP ///
 	println(get_rot());
 	wait(100);
-	move_to(12, 12, 0, 0, 0);
+	move_to(0, 12, 0, 0, 1);
 	// for (size_t i = 0; i < points_x.size(); i++) {
 	// 	move_to(points_x[i], points_y[i], points_x[i + 1], points_y[i + 1], points_mode[i]);
 	// 	controller.rumble(".");
@@ -532,8 +533,6 @@ void autonomous() {
 }
 
 void opcontrol() {
-	autonomous(); //Autonomous ***REMOVE*** FOR COMP//
-
 	/// INIT ///
 	println("OPCONTROL");
 	brake_wheels();
@@ -544,8 +543,11 @@ void opcontrol() {
 	/// CODE ///
 	while (true)
 	{
-		up_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
-		left_analog = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 2.3f;
+		analogX = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 1.5f;
+		analogY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+		left_analog = analogX * abs(sin(to_degrees(atan2(analogX, analogY))));
+		up_analog = analogY * abs(cos(to_degrees(atan2(analogX, analogY))));
+		println(sin(to_degrees(atan2(analogX, analogY))));
 		check_reverse_motors();
 		control_motors(up_analog, left_analog);
 		speed_control(max_speed);
