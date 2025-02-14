@@ -400,17 +400,9 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			// prevx = pointX1
 			// tary = pointY2
 			// prevy = pointY1
-			// 288
-			// 0
-			// -36
 			a = pow(tarx - prevx, 2) + pow(tary - prevy, 2);
 			b = 2 * (((prevx - x) * (tarx - prevx)) + ((prevy - y) * (tary - prevy)));
 			c = (pow(prevx - x, 2) + pow(prevy - y, 2)) - pow(r, 2);
-			println(a);
-			println(b, 2);
-			println(c, 3);
-			// println(x);
-			// println(y, 2);
 			discriminate = pow(b, 2) - (4 * a * c);
 			t1 = (-b + sqrt(discriminate)) / (2 * a);
 			t2 = (-b - sqrt(discriminate)) / (2 * a); 
@@ -420,34 +412,33 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			x_intercept1 = pointY1 + (pointY2 = pointY1) * t2;
 			within_x = (minX <= x_intercept1 && x_intercept1 <= maxX) || (minX <= x_intercept2 && x_intercept2 <= maxX);
 			within_y = (minY <= y_intercept1 && y_intercept1 <= maxY) || (minY <= y_intercept2 && y_intercept2 <= maxY);
-
-			// //| lahjick :/
-			// if (discriminate >= 0) {
-			// 	if (within_x && within_y) {
-			// 		if (abs(x_intercept2 - tarx) + abs(y_intercept2 - tary) < abs(x_intercept1 - tarx) + abs(y_intercept1 - tary)) {
-			// 			PID(x_intercept2, y_intercept2);
-			// 			println(x_intercept2, 1);
-			// 			println(y_intercept2, 2);
-			// 			println(rot, 3);
-			// 			println("Intercept 2", 4);
-			// 		} else {
-			// 			PID(x_intercept1, y_intercept1);
-			// 			println(x_intercept1, 1);
-			// 			println(y_intercept1, 2);
-			// 			println(p_x);
-			// 		}
-			// 	}
-			// }
-			// discriminant = pow(b, 2) - 4*A*C   //(from quadratic equation);
-			// left_speed = PID_dist - PID_rot;
-			// right_speed = PID_dist + PID_rot;
-			// println(x_intercept1);
-			// println(x_intercept2, 2);
-			// println(y_intercept1, 3);
-			// println(y_intercept2, 4);
+			//| lahjick :/
+			if (discriminate >= 0) {
+				if (within_x && within_y) {
+					if (abs(x_intercept2 - tarx) + abs(y_intercept2 - tary) < abs(x_intercept1 - tarx) + abs(y_intercept1 - tary)) {
+						PID(x_intercept2, y_intercept2);
+						println(x_intercept2, 1);
+						println(y_intercept2, 2);
+						println(rot, 3);
+						println("Intercept 2", 4);
+					} else {
+						PID(x_intercept1, y_intercept1);
+						println(x_intercept1, 1);
+						println(y_intercept1, 2);
+						println(p_x);
+					}
+				}
+			}
+			// discriminant = pow(b, 2) - 4*A*C   (from quadratic equation);
+			left_speed = PID_dist - PID_rot;
+			right_speed = PID_dist + PID_rot;
+			println(x_intercept1);
+			println(x_intercept2, 2);
+			println(y_intercept1, 3);
+			println(y_intercept2, 4);
 			
-			// println(auton_rot, 5);
-			// move_motors(left_speed, right_speed);
+			println(auton_rot, 5);
+			move_motors(left_speed, right_speed);
 			auton_control(tarx, tary);
 			wait(10);
 		}
