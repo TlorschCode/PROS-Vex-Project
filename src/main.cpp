@@ -436,8 +436,7 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			println(x_intercept2, 2);
 			println(y_intercept1, 3);
 			println(y_intercept2, 4);
-			
-			println(auton_rot, 5);
+			println(PID_dist, 5);
 			move_motors(left_speed, right_speed);
 			auton_control(tarx, tary);
 			wait(10);
