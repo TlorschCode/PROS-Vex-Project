@@ -543,8 +543,8 @@ void opcontrol() {
 	/// CODE ///
 	while (true)
 	{
-		analogX = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) / 1.5f;
-		analogY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
+		analogX = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X) * 1.5f;
+		analogY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y) * 2;
 		left_analog = analogX * abs(sin(to_degrees(atan2(analogX, analogY))));
 		up_analog = analogY * abs(cos(to_degrees(atan2(analogX, analogY))));
 		println(sin(to_degrees(atan2(analogX, analogY))));
