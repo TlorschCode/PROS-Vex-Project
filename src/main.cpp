@@ -331,7 +331,7 @@ void PID(float tarx, float tary) {
 	//| distance -
 	p_x = (targx - x) * p_gain;
 	p_y = (targy - y) * p_gain;
-	i_x = (i_x + p_x) * sin(rot_radians);
+	i_x = (i_x + p_x) * cos(rot_radians);
 	i_y = (i_y + p_y) * cos(rot_radians);
 	if (abs(original_x) - x < 12) {
 		d_mod_x = 1;
@@ -345,9 +345,9 @@ void PID(float tarx, float tary) {
 	}
 	d_x = (original_x - (x * d_gain)) * d_mod_x;
 	d_y = (original_y - (y * d_gain)) * d_mod_y;
-	PID_x = p_x + (d_x * d_gain) * sin(rot_radians); // Cos and Sin used down here because they
-	PID_y = p_y + (d_y * d_gain) * cos(rot_radians); // were already used for i
-	PID_dist = ((PID_y + (i_y * i_gain)) + (PID_x + (i_x * i_gain))) / 2;
+	PID_x = (p_x + (i_x * i_gain) + (d_x * d_gain)) * sin(rot_radians); // Cos and Sin used down here because they
+	PID_y = (p_y + (i_y * i_gain) + (d_y * d_gain)) * cos(rot_radians); // were already used for i
+	PID_dist = (PID_y + PID_x) / 2;
 	//| rotation - 
 	p_rot = rot_diff * p_rot_gain;
 	i_rot = i_rot + p_rot;
