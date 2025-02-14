@@ -405,7 +405,7 @@ void move_to(float tarx, float tary, float prevx = 0.0f, float prevy = 0.0f, boo
 			c = (pow(prevx - x, 2) + pow(prevy - y, 2)) - pow(r, 2);
 			discriminate = pow(b, 2) - (4 * a * c);
 			t1 = (-b + sqrt(discriminate)) / (2 * a);
-			t2 = (-b - sqrt(discriminate)) / (2 * a); 
+			t2 = (-b - sqrt(discriminate)) / (2 * a);
 			x_intercept1 = pointX1 + (pointX2 = pointX1) * t1;
 			x_intercept1 = pointX1 + (pointX2 = pointX1) * t2;
 			x_intercept1 = pointY1 + (pointY2 = pointY1) * t1;
