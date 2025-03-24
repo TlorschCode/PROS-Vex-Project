@@ -8,3 +8,5 @@ Fast motors' velocities are +-600
 Right side motors move forward with a positive velocity input
 
 !! - 1.155 is the perfect amount for line 240 !!
+
+OVERTHINKING is our next team name.
